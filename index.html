@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>BreakVerb - Casse-brique des verbes irréguliers</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="game-shell">
+      <header class="hud">
+        <h1>BreakVerb</h1>
+        <div class="stats">
+          <p>Score: <span id="score">0</span></p>
+          <p>Vies: <span id="lives">3</span></p>
+          <p>Niveau: <span id="level">1</span></p>
+          <p>Reste: <span id="remaining">0</span></p>
+        </div>
+      </header>
+
+      <section class="arena-wrap">
+        <canvas id="gameCanvas" width="960" height="540" aria-label="Jeu casse-brique éducatif"></canvas>
+
+        <div id="screenOverlay" class="overlay visible">
+          <div class="panel">
+            <h2 id="overlayTitle">BreakVerb</h2>
+            <p id="overlayText">
+              Casse les briques de verbes irréguliers et réponds correctement pour les détruire.
+            </p>
+            <button id="startBtn" class="main-btn">Lancer la partie</button>
+            <p class="hint">
+              Clavier: ← → ou A D • Espace pour lancer la balle
+              <br />
+              Mobile/Tablette: glisse le doigt dans la zone basse du jeu
+            </p>
+          </div>
+        </div>
+
+        <div id="quizOverlay" class="overlay hidden" aria-live="polite">
+          <div class="panel quiz-panel">
+            <h2>Question verbale</h2>
+            <p id="quizPrompt">...</p>
+            <p id="quizTimer" class="quiz-timer">4.0s</p>
+            <div id="quizChoices" class="choices"></div>
+            <p id="quizFeedback" class="feedback"></p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
