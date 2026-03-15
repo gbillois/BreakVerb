@@ -12,10 +12,13 @@
         <h1>BreakVerb</h1>
         <div class="stats">
           <p>Score: <span id="score">0</span></p>
+          <p>Best: <span id="bestScore">0</span></p>
           <p>Vies: <span id="lives">3</span></p>
           <p>Niveau: <span id="level">1</span></p>
           <p>Reste: <span id="remaining">0</span></p>
+          <p>Mode: <span id="modeLabel">Normal</span></p>
         </div>
+        <button id="pauseBtn" class="main-btn pause-btn" type="button">Pause</button>
       </header>
 
       <section class="arena-wrap">
@@ -27,12 +30,38 @@
             <p id="overlayText">
               Casse les briques de verbes irréguliers et réponds correctement pour les détruire.
             </p>
+            <div class="difficulty-box">
+              <p>Difficulté quiz</p>
+              <div class="difficulty-buttons">
+                <button type="button" class="difficulty-btn" data-difficulty="easy">Facile</button>
+                <button type="button" class="difficulty-btn active" data-difficulty="normal">Normal</button>
+                <button type="button" class="difficulty-btn" data-difficulty="expert">Expert</button>
+              </div>
+              <p class="difficulty-hint">Facile: illimité • Normal: 10s • Expert: 5s</p>
+            </div>
             <button id="startBtn" class="main-btn">Lancer la partie</button>
             <p class="hint">
               Clavier: ← → ou A D • Espace pour lancer la balle
               <br />
               Mobile/Tablette: glisse le doigt dans la zone basse du jeu
+              <br />
+              P pause/reprise • R relancer
             </p>
+            <div id="nameEntry" class="name-entry hidden">
+              <p>Nouveau record. Entrez votre pseudo:</p>
+              <input
+                id="playerNameInput"
+                type="text"
+                maxlength="16"
+                autocomplete="nickname"
+                placeholder="PLAYER"
+              />
+              <button id="saveScoreBtn" class="main-btn small-btn" type="button">Enregistrer le score</button>
+            </div>
+            <div class="leaderboard-box">
+              <h3>Leaderboard</h3>
+              <ol id="leaderboardList"></ol>
+            </div>
           </div>
         </div>
 

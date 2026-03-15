@@ -2,14 +2,22 @@ const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
 const scoreEl = document.getElementById("score");
+const bestScoreEl = document.getElementById("bestScore");
 const livesEl = document.getElementById("lives");
 const levelEl = document.getElementById("level");
 const remainingEl = document.getElementById("remaining");
+const modeLabelEl = document.getElementById("modeLabel");
+const pauseBtn = document.getElementById("pauseBtn");
 
 const screenOverlay = document.getElementById("screenOverlay");
 const overlayTitle = document.getElementById("overlayTitle");
 const overlayText = document.getElementById("overlayText");
 const startBtn = document.getElementById("startBtn");
+const nameEntry = document.getElementById("nameEntry");
+const playerNameInput = document.getElementById("playerNameInput");
+const saveScoreBtn = document.getElementById("saveScoreBtn");
+const leaderboardList = document.getElementById("leaderboardList");
+const difficultyButtons = Array.from(document.querySelectorAll(".difficulty-btn"));
 
 const quizOverlay = document.getElementById("quizOverlay");
 const quizPrompt = document.getElementById("quizPrompt");
@@ -23,6 +31,14 @@ const PORTRAIT_WORLD = { width: 600, height: 960 };
 let WORLD_WIDTH = LANDSCAPE_WORLD.width;
 let WORLD_HEIGHT = LANDSCAPE_WORLD.height;
 const BONUS_BRICK_RATIO = 0.15;
+const LEADERBOARD_KEY = "breakverb_leaderboard_v1";
+const SETTINGS_KEY = "breakverb_settings_v1";
+
+const DIFFICULTY_MODES = {
+  easy: { label: "Facile", quizTime: null },
+  normal: { label: "Normal", quizTime: 10 },
+  expert: { label: "Expert", quizTime: 5 },
+};
 
 canvas.width = WORLD_WIDTH;
 canvas.height = WORLD_HEIGHT;
@@ -352,10 +368,14 @@ function createBall(x, y, vx = 260, vy = -320) {
 
 const state = {
   running: false,
+  paused: false,
   awaitingAnswer: false,
   ballLocked: true,
+  countdownActive: false,
+  roundCountdown: 0,
   startedOnce: false,
   score: 0,
+  bestScore: 0,
   lives: 3,
   level: 1,
   combo: 0,
@@ -373,7 +393,10 @@ const state = {
   bonusQueue: [],
   pendingQuestion: null,
   quizTimeLeft: 0,
-  quizSelectedIndex: 0,
+  quizSelectedIndex: -1,
+  difficulty: "normal",
+  leaderboard: [],
+  pendingLeaderboardScore: null,
   effects: {
     paddleTimer: 0,
   },
@@ -417,6 +440,128 @@ function randomWeightedItem(list, weightKey = "weight") {
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
+}
+
+function readJsonStorage(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    return parsed ?? fallback;
+  } catch (error) {
+    return fallback;
+  }
+}
+
+function writeJsonStorage(key, data) {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (error) {
+    // Ignore storage errors (private mode, quota, etc.)
+  }
+}
+
+function renderDifficultyButtons() {
+  const mode = DIFFICULTY_MODES[state.difficulty] ? state.difficulty : "normal";
+  state.difficulty = mode;
+  difficultyButtons.forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.difficulty === mode);
+  });
+  if (modeLabelEl) modeLabelEl.textContent = DIFFICULTY_MODES[mode].label;
+}
+
+function setDifficulty(mode, persist = true) {
+  if (!DIFFICULTY_MODES[mode]) return;
+  state.difficulty = mode;
+  renderDifficultyButtons();
+  if (persist) {
+    writeJsonStorage(SETTINGS_KEY, { difficulty: mode });
+  }
+}
+
+function loadSettings() {
+  const settings = readJsonStorage(SETTINGS_KEY, {});
+  if (settings && DIFFICULTY_MODES[settings.difficulty]) {
+    state.difficulty = settings.difficulty;
+  } else {
+    state.difficulty = "normal";
+  }
+  renderDifficultyButtons();
+}
+
+function normalizeLeaderboardRows(rows) {
+  if (!Array.isArray(rows)) return [];
+  const safeRows = [];
+  for (let i = 0; i < rows.length; i += 1) {
+    const row = rows[i];
+    if (!row || typeof row !== "object") continue;
+    const score = Number(row.score) || 0;
+    const level = Math.max(1, Number(row.level) || 1);
+    const name = `${row.name || "PLAYER"}`.slice(0, 16);
+    if (score <= 0) continue;
+    safeRows.push({ name, score, level, date: Number(row.date) || Date.now() });
+  }
+  safeRows.sort((a, b) => b.score - a.score || b.level - a.level || a.date - b.date);
+  return safeRows.slice(0, 10);
+}
+
+function loadLeaderboard() {
+  state.leaderboard = normalizeLeaderboardRows(readJsonStorage(LEADERBOARD_KEY, []));
+  state.bestScore = state.leaderboard.length > 0 ? state.leaderboard[0].score : 0;
+  renderLeaderboard();
+}
+
+function saveLeaderboard() {
+  state.leaderboard = normalizeLeaderboardRows(state.leaderboard);
+  writeJsonStorage(LEADERBOARD_KEY, state.leaderboard);
+  state.bestScore = state.leaderboard.length > 0 ? state.leaderboard[0].score : 0;
+  renderLeaderboard();
+}
+
+function isLeaderboardScore(score) {
+  if (score <= 0) return false;
+  if (state.leaderboard.length < 10) return true;
+  return score > state.leaderboard[state.leaderboard.length - 1].score;
+}
+
+function addLeaderboardEntry(name, score, level) {
+  if (score <= 0) return;
+  const finalName = `${name || "PLAYER"}`.trim().slice(0, 16) || "PLAYER";
+  state.leaderboard.push({
+    name: finalName,
+    score: Math.floor(score),
+    level: Math.max(1, Math.floor(level)),
+    date: Date.now(),
+  });
+  saveLeaderboard();
+}
+
+function renderLeaderboard() {
+  if (!leaderboardList) return;
+  leaderboardList.innerHTML = "";
+  if (state.leaderboard.length === 0) {
+    const li = document.createElement("li");
+    li.textContent = "Aucun score pour le moment.";
+    leaderboardList.appendChild(li);
+  } else {
+    state.leaderboard.forEach((row) => {
+      const li = document.createElement("li");
+      li.textContent = `${row.name} — ${row.score} pts (Niv. ${row.level})`;
+      leaderboardList.appendChild(li);
+    });
+  }
+  if (bestScoreEl) {
+    bestScoreEl.textContent = `${Math.max(state.bestScore, state.score)}`;
+  }
+}
+
+function setNameEntryVisible(visible) {
+  if (!nameEntry) return;
+  nameEntry.classList.toggle("hidden", !visible);
+  if (visible && playerNameInput) {
+    playerNameInput.value = "";
+    playerNameInput.focus();
+  }
 }
 
 function getBrickLayout() {
@@ -552,14 +697,25 @@ function roundRect(x, y, w, h, r) {
 
 function refreshHud() {
   scoreEl.textContent = `${state.score}`;
+  bestScoreEl.textContent = `${Math.max(state.bestScore, state.score)}`;
   livesEl.textContent = `${state.lives}`;
   levelEl.textContent = `${state.level}`;
   remainingEl.textContent = `${state.remaining}`;
+  if (modeLabelEl) modeLabelEl.textContent = DIFFICULTY_MODES[state.difficulty].label;
+  if (pauseBtn) pauseBtn.textContent = state.paused ? "Reprendre" : "Pause";
 }
 
 function showNotice(text, duration = 2.1) {
   state.notice = text;
   state.noticeTimer = duration;
+}
+
+function startRoundCountdown(seconds = 3) {
+  if (!state.running) return;
+  state.countdownActive = true;
+  state.roundCountdown = Math.max(0.1, seconds);
+  state.ballLocked = true;
+  state.paused = false;
 }
 
 function resetBalls(lock = true) {
@@ -569,7 +725,8 @@ function resetBalls(lock = true) {
 }
 
 function launchBall() {
-  if (!state.ballLocked || state.awaitingAnswer || state.balls.length === 0) return;
+  if (!state.ballLocked || state.awaitingAnswer || state.balls.length === 0 || state.paused) return;
+  if (state.countdownActive) return;
   state.ballLocked = false;
   const ball = state.balls[0];
   const side = Math.random() < 0.5 ? -1 : 1;
@@ -650,6 +807,9 @@ function resetLevel(level, keepStats = true) {
     state.lives = 3;
     state.combo = 0;
   }
+  state.paused = false;
+  state.countdownActive = false;
+  state.roundCountdown = 0;
   state.level = level;
   state.effects.paddleTimer = 0;
   const maxBase = clamp(WORLD_WIDTH * 0.25, 130, 190);
@@ -664,8 +824,11 @@ function resetLevel(level, keepStats = true) {
   state.pendingQuestion = null;
   state.awaitingAnswer = false;
   hideQuiz();
+  setNameEntryVisible(false);
   resetBalls(true);
   showNotice(`Motif ${state.patternName}`);
+  state.countdownActive = true;
+  state.roundCountdown = 3;
   fitCanvasToViewport();
   refreshHud();
 }
@@ -675,6 +838,8 @@ function showMainOverlay(title, text, buttonLabel, onClick) {
   overlayText.textContent = text;
   startBtn.textContent = buttonLabel;
   startBtn.onclick = onClick;
+  setNameEntryVisible(false);
+  renderLeaderboard();
   screenOverlay.classList.remove("hidden");
   screenOverlay.classList.add("visible");
 }
@@ -691,15 +856,15 @@ function showQuiz(question) {
   quizFeedback.textContent = "Choix clavier: 1 2 3, ou fleches + Entree.";
   quizFeedback.className = "feedback";
   quizChoices.innerHTML = "";
-  state.quizTimeLeft = 4;
-  state.quizSelectedIndex = 0;
-  quizTimerEl.textContent = "4.0s";
+  const limit = DIFFICULTY_MODES[state.difficulty].quizTime;
+  state.quizTimeLeft = limit == null ? Infinity : limit;
+  state.quizSelectedIndex = -1;
+  quizTimerEl.textContent = limit == null ? "Temps: illimité" : `${limit.toFixed(1)}s`;
 
-  question.choices.forEach((choice, index) => {
+  question.choices.forEach((choice) => {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "choice-btn";
-    if (index === 0) btn.classList.add("selected");
     btn.textContent = choice;
     btn.addEventListener("click", () => resolveAnswer(choice), { once: true });
     quizChoices.appendChild(btn);
@@ -723,13 +888,18 @@ function wrapIndex(index, length) {
 function updateQuizSelection() {
   const buttons = quizChoices.querySelectorAll("button");
   buttons.forEach((btn, i) => {
-    btn.classList.toggle("selected", i === state.quizSelectedIndex);
+    btn.classList.toggle("selected", state.quizSelectedIndex >= 0 && i === state.quizSelectedIndex);
   });
 }
 
 function setQuizSelectedIndex(index) {
   const buttons = quizChoices.querySelectorAll("button");
   if (buttons.length === 0) return;
+  if (index < 0) {
+    state.quizSelectedIndex = -1;
+    updateQuizSelection();
+    return;
+  }
   state.quizSelectedIndex = wrapIndex(index, buttons.length);
   updateQuizSelection();
 }
@@ -773,8 +943,7 @@ function buildPromptPattern(verb, targetKey) {
   const slots = [forms.base, forms.past, forms.pp];
   const indexByKey = { base: 0, past: 1, pp: 2 };
   slots[indexByKey[targetKey]] = "____";
-  const duplicate = targetKey === "past" ? forms.pp : forms.past;
-  return `${slots[0]} ${slots[1]} ${slots[2]} ${duplicate}`;
+  return `${slots[0]} / ${slots[1]} / ${slots[2]}`;
 }
 
 function createBonusQuestion(bonus) {
@@ -867,7 +1036,8 @@ function resolveAnswer(choice, reason = "answer") {
     btn.classList.remove("selected");
   });
   state.quizTimeLeft = 0;
-  quizTimerEl.textContent = "0.0s";
+  quizTimerEl.textContent =
+    DIFFICULTY_MODES[state.difficulty].quizTime == null ? "Temps: illimité" : "0.0s";
 
   if (isCorrect) {
     applyBonus(bonusType);
@@ -942,6 +1112,46 @@ function destroyBrick(brick, axis, ball) {
   refreshHud();
 }
 
+function persistPendingLeaderboardScore() {
+  if (!state.pendingLeaderboardScore) return;
+  const fallbackName = playerNameInput ? playerNameInput.value.trim() : "";
+  addLeaderboardEntry(
+    fallbackName || "PLAYER",
+    state.pendingLeaderboardScore.score,
+    state.pendingLeaderboardScore.level,
+  );
+  state.pendingLeaderboardScore = null;
+  setNameEntryVisible(false);
+  refreshHud();
+}
+
+function startNewGame() {
+  persistPendingLeaderboardScore();
+  hideMainOverlay();
+  resetLevel(1, false);
+  state.running = true;
+  state.startedOnce = true;
+  startRoundCountdown(3);
+}
+
+function handleGameOver() {
+  state.running = false;
+  state.paused = false;
+  const qualifies = isLeaderboardScore(state.score);
+  const gameOverText = qualifies
+    ? "Top score potentiel. Entre ton pseudo et enregistre ton score."
+    : "Tu as perdu toutes tes vies. Relance une partie pour battre ton score.";
+  showMainOverlay("Partie terminee", gameOverText, "Rejouer", () => {
+    startNewGame();
+  });
+  if (qualifies) {
+    state.pendingLeaderboardScore = { score: state.score, level: state.level };
+    setNameEntryVisible(true);
+  } else {
+    state.pendingLeaderboardScore = null;
+  }
+}
+
 function loseLife() {
   state.lives -= 1;
   state.combo = 0;
@@ -952,21 +1162,11 @@ function loseLife() {
   hideQuiz();
 
   if (state.lives <= 0) {
-    state.running = false;
-    showMainOverlay(
-      "Partie terminee",
-      "Tu as perdu toutes tes vies. Relance une partie pour battre ton score.",
-      "Rejouer",
-      () => {
-        hideMainOverlay();
-        resetLevel(1, false);
-        state.running = true;
-        state.startedOnce = true;
-      },
-    );
+    handleGameOver();
   } else {
     resetBalls(true);
     showNotice("Vie perdue", 1.8);
+    startRoundCountdown(3);
   }
   refreshHud();
 }
@@ -982,6 +1182,7 @@ function nextLevel() {
       hideMainOverlay();
       resetLevel(state.level + 1, true);
       state.running = true;
+      startRoundCountdown(3);
     },
   );
 }
@@ -1063,10 +1264,25 @@ function updateBonuses(delta) {
 
 function updateQuizTimer(delta) {
   if (!state.awaitingAnswer || !state.pendingQuestion || state.pendingQuestion.resolved) return;
+  if (state.paused) return;
+  const timeLimit = DIFFICULTY_MODES[state.difficulty].quizTime;
+  if (timeLimit == null) {
+    quizTimerEl.textContent = "Temps: illimité";
+    return;
+  }
   state.quizTimeLeft = Math.max(0, state.quizTimeLeft - delta);
   quizTimerEl.textContent = `${state.quizTimeLeft.toFixed(1)}s`;
   if (state.quizTimeLeft <= 0) {
     resolveAnswer(null, "timeout");
+  }
+}
+
+function updateRoundCountdown(delta) {
+  if (!state.running || state.paused || !state.countdownActive || state.awaitingAnswer) return;
+  state.roundCountdown = Math.max(0, state.roundCountdown - delta);
+  if (state.roundCountdown <= 0) {
+    state.countdownActive = false;
+    launchBall();
   }
 }
 
@@ -1147,16 +1363,21 @@ function updateParticles(delta) {
 }
 
 function update(delta) {
-  updatePaddle(delta);
-  updateEffects(delta);
-  if (state.running) {
-    updateBalls(delta);
-    updateBonuses(delta);
+  if (!state.paused) {
+    updatePaddle(delta);
+    updateEffects(delta);
+  }
+  if (state.running && !state.paused) {
+    updateRoundCountdown(delta);
+    if (!state.countdownActive) {
+      updateBalls(delta);
+      updateBonuses(delta);
+    }
   }
   updateQuizTimer(delta);
-  updateParticles(delta);
+  if (!state.paused) updateParticles(delta);
 
-  if (state.running && state.remaining <= 0 && !state.awaitingAnswer) {
+  if (state.running && !state.paused && state.remaining <= 0 && !state.awaitingAnswer) {
     nextLevel();
   }
 
@@ -1311,7 +1532,11 @@ function drawParticles() {
 
 function drawNotice() {
   let text = "";
-  if (state.running && state.ballLocked) {
+  if (state.running && state.paused) {
+    text = "Pause";
+  } else if (state.running && state.countdownActive) {
+    text = `${Math.ceil(state.roundCountdown)}`;
+  } else if (state.running && state.ballLocked) {
     text = "Appuie sur Espace pour lancer la balle";
   } else if (state.noticeTimer > 0) {
     text = state.notice;
@@ -1394,6 +1619,13 @@ function refreshResponsiveLayout(preserveObjects = true) {
   updateWorldBounds(portraitMode, preserveObjects);
 }
 
+function togglePause() {
+  if (!state.running || state.awaitingAnswer || screenOverlay.classList.contains("visible")) return;
+  state.paused = !state.paused;
+  showNotice(state.paused ? "Pause" : "Reprise", 1.2);
+  refreshHud();
+}
+
 document.addEventListener("keydown", (event) => {
   const key = event.key.toLowerCase();
 
@@ -1409,22 +1641,38 @@ document.addEventListener("keydown", (event) => {
         return;
       }
       if (key === "arrowleft" || key === "arrowup") {
-        setQuizSelectedIndex(state.quizSelectedIndex - 1);
+        const nextIdx = state.quizSelectedIndex < 0 ? buttons.length - 1 : state.quizSelectedIndex - 1;
+        setQuizSelectedIndex(nextIdx);
         event.preventDefault();
         return;
       }
       if (key === "arrowright" || key === "arrowdown") {
-        setQuizSelectedIndex(state.quizSelectedIndex + 1);
+        const nextIdx = state.quizSelectedIndex < 0 ? 0 : state.quizSelectedIndex + 1;
+        setQuizSelectedIndex(nextIdx);
         event.preventDefault();
         return;
       }
       if (event.code === "Enter" || event.code === "Space") {
-        const idx = wrapIndex(state.quizSelectedIndex, buttons.length);
-        resolveAnswer(buttons[idx].textContent, "keyboard");
+        if (state.quizSelectedIndex >= 0) {
+          const idx = wrapIndex(state.quizSelectedIndex, buttons.length);
+          resolveAnswer(buttons[idx].textContent, "keyboard");
+        }
         event.preventDefault();
         return;
       }
     }
+  }
+
+  if (key === "p") {
+    togglePause();
+    event.preventDefault();
+    return;
+  }
+
+  if (key === "r" && state.startedOnce) {
+    startNewGame();
+    event.preventDefault();
+    return;
   }
 
   if (key === "arrowleft" || key === "a" || key === "q") {
@@ -1485,6 +1733,33 @@ canvas.addEventListener("pointercancel", () => {
   state.touchPointerId = null;
 });
 
+if (pauseBtn) {
+  pauseBtn.addEventListener("click", () => {
+    togglePause();
+  });
+}
+
+if (saveScoreBtn) {
+  saveScoreBtn.addEventListener("click", () => {
+    persistPendingLeaderboardScore();
+  });
+}
+
+if (playerNameInput) {
+  playerNameInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      persistPendingLeaderboardScore();
+      event.preventDefault();
+    }
+  });
+}
+
+difficultyButtons.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    setDifficulty(btn.dataset.difficulty || "normal", true);
+  });
+});
+
 window.addEventListener("resize", () => {
   refreshResponsiveLayout(true);
 });
@@ -1506,13 +1781,12 @@ showMainOverlay(
   "Mode casse-brique classique: les briques cassent directement. Les questions arrivent sur les bonus qui tombent.",
   "Lancer la partie",
   () => {
-    hideMainOverlay();
-    resetLevel(1, false);
-    state.running = true;
-    state.startedOnce = true;
+    startNewGame();
   },
 );
 
+loadSettings();
+loadLeaderboard();
 refreshResponsiveLayout(false);
 refreshHud();
 requestAnimationFrame(loop);

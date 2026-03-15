@@ -65,6 +65,11 @@ h1 {
   font-weight: 700;
 }
 
+.pause-btn {
+  padding: 10px 12px;
+  font-size: 0.92rem;
+}
+
 .arena-wrap {
   position: relative;
   margin-top: 12px;
@@ -150,10 +155,106 @@ canvas {
   filter: brightness(1.08);
 }
 
+.small-btn {
+  font-size: 0.88rem;
+  padding: 9px 11px;
+}
+
 .hint {
   margin-bottom: 0;
   opacity: 0.9;
   font-size: 0.95rem;
+}
+
+.difficulty-box {
+  margin: 12px 0 8px;
+  border: 1px solid #ffffff2d;
+  border-radius: 10px;
+  padding: 10px;
+  background: #08162999;
+}
+
+.difficulty-box p {
+  margin: 0;
+}
+
+.difficulty-buttons {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.difficulty-btn {
+  border: 1px solid #ffffff3a;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #17324a, #13263d);
+  color: var(--text);
+  font-weight: 800;
+  cursor: pointer;
+  padding: 9px 8px;
+}
+
+.difficulty-btn.active {
+  border-color: #ffd47e;
+  box-shadow: 0 0 0 2px #ffd47e33 inset;
+}
+
+.difficulty-hint {
+  margin-top: 8px !important;
+  opacity: 0.9;
+  font-size: 0.86rem;
+}
+
+.name-entry {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid #ffffff30;
+  border-radius: 10px;
+  background: #0a1d31ad;
+}
+
+.name-entry.hidden {
+  display: none;
+}
+
+.name-entry p {
+  margin: 0 0 8px;
+}
+
+.name-entry input {
+  width: min(240px, 100%);
+  background: #0a1a2e;
+  border: 1px solid #ffffff40;
+  color: #f3f8ff;
+  border-radius: 8px;
+  padding: 9px 10px;
+  margin-right: 8px;
+  margin-bottom: 8px;
+}
+
+.leaderboard-box {
+  margin-top: 12px;
+  text-align: left;
+  border: 1px solid #ffffff30;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #09192d96;
+}
+
+.leaderboard-box h3 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+}
+
+#leaderboardList {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 0.92rem;
+}
+
+#leaderboardList li {
+  margin: 2px 0;
 }
 
 .quiz-panel {
@@ -228,6 +329,10 @@ canvas {
     padding: 7px 9px;
   }
 
+  .pause-btn {
+    width: 100%;
+  }
+
   .panel {
     padding: 14px;
   }
@@ -245,6 +350,15 @@ canvas {
   .choice-btn {
     font-size: 0.9rem;
     padding: 10px 5px;
+  }
+
+  .difficulty-buttons {
+    gap: 6px;
+  }
+
+  .difficulty-btn {
+    font-size: 0.86rem;
+    padding: 8px 6px;
   }
 }
 
