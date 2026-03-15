@@ -16,12 +16,12 @@ const quizPrompt = document.getElementById("quizPrompt");
 const quizTimerEl = document.getElementById("quizTimer");
 const quizChoices = document.getElementById("quizChoices");
 const quizFeedback = document.getElementById("quizFeedback");
+const arenaWrap = document.querySelector(".arena-wrap");
 
-const WORLD_WIDTH = 960;
-const WORLD_HEIGHT = 540;
-const BRICK_TOP = 62;
-const BRICK_SIDE_MARGIN = 14;
-const BRICK_GAP = 4;
+const LANDSCAPE_WORLD = { width: 960, height: 540 };
+const PORTRAIT_WORLD = { width: 600, height: 960 };
+let WORLD_WIDTH = LANDSCAPE_WORLD.width;
+let WORLD_HEIGHT = LANDSCAPE_WORLD.height;
 const BONUS_BRICK_RATIO = 0.15;
 
 canvas.width = WORLD_WIDTH;
@@ -89,7 +89,7 @@ const IRREGULAR_VERBS = [
 
 const LEVEL_PATTERNS = [
   {
-    name: "Croix de St George",
+    name: "UK - Croix de St George",
     grid: [
       "............",
       ".WWWWRRWWWW.",
@@ -104,7 +104,7 @@ const LEVEL_PATTERNS = [
     ],
   },
   {
-    name: "Big Ben",
+    name: "UK - Big Ben",
     grid: [
       ".....YY.....",
       "....YYYY....",
@@ -119,7 +119,7 @@ const LEVEL_PATTERNS = [
     ],
   },
   {
-    name: "Couronne Royale",
+    name: "UK - Couronne Royale",
     grid: [
       "............",
       "..G......G..",
@@ -134,7 +134,7 @@ const LEVEL_PATTERNS = [
     ],
   },
   {
-    name: "Union Jack Simplifie",
+    name: "UK - Union Jack",
     grid: [
       ".BWWRRWWWB..",
       "BBWWRRWWBB..",
@@ -145,6 +145,171 @@ const LEVEL_PATTERNS = [
       "BBWWRRWWBB..",
       ".BWWRRWWWB..",
       "............",
+      "............",
+    ],
+  },
+  {
+    name: "USA - Aigle",
+    grid: [
+      "..B......B..",
+      ".BBBWWWWBBB.",
+      "BBBBWWWWBBBB",
+      ".BBWWYYWWBB.",
+      "..BWWYYWWB..",
+      "...WWWWWW...",
+      "..BBWWWWBB..",
+      ".BBBB..BBBB.",
+      "..BB....BB..",
+      "............",
+    ],
+  },
+  {
+    name: "USA - Statue de la Liberte",
+    grid: [
+      ".....Y......",
+      "....YYY.....",
+      "....YYY.....",
+      "....GGG.....",
+      "...GGGGG....",
+      "...GGGGG....",
+      "...GGBBG....",
+      "...GGBBG....",
+      "..GGGGGG....",
+      ".GGGGGGGG...",
+    ],
+  },
+  {
+    name: "USA - Stars and Stripes",
+    grid: [
+      "BBBBBBRRRRRR",
+      "BWBWBBWWWWWW",
+      "BBBBBBRRRRRR",
+      "BWBWBBWWWWWW",
+      "RRRRRRRRRRRR",
+      "WWWWWWWWWWWW",
+      "RRRRRRRRRRRR",
+      "WWWWWWWWWWWW",
+      "RRRRRRRRRRRR",
+      "WWWWWWWWWWWW",
+    ],
+  },
+  {
+    name: "Australie - Koala",
+    grid: [
+      "...BB..BB...",
+      "..BBBBBBBB..",
+      ".BBBWWWWBBB.",
+      ".BBWWWWWWBB.",
+      ".BBWWGGWWBB.",
+      "..BWWWWWWB..",
+      "..BWWWWWWB..",
+      "...BBWWBB...",
+      "...B....B...",
+      "............",
+    ],
+  },
+  {
+    name: "Australie - Boomerang",
+    grid: [
+      "............",
+      "..YY........",
+      "...YYYY.....",
+      ".....YYYY...",
+      ".......YYYY.",
+      "......YYYY..",
+      "....YYYY....",
+      "..YYYY......",
+      ".YYYY.......",
+      "............",
+    ],
+  },
+  {
+    name: "Australie - Opera de Sydney",
+    grid: [
+      "............",
+      "....WW......",
+      "...WWWW.....",
+      "..WWWWWW....",
+      ".WWWWWWWW...",
+      "..BBWWBB....",
+      ".BBBBBBBB...",
+      "BBBBBBBBBB..",
+      "............",
+      "............",
+    ],
+  },
+  {
+    name: "France - Tour Eiffel",
+    grid: [
+      ".....BB.....",
+      "....BBBB....",
+      "...BBBBBB...",
+      "...BBBBBB...",
+      "....BBBB....",
+      "....BBBB....",
+      "...BB..BB...",
+      "..BBB..BBB..",
+      ".BBBBBBBBBB.",
+      ".....BB.....",
+    ],
+  },
+  {
+    name: "Canada - Feuille d Erable",
+    grid: [
+      ".....R......",
+      "....RRR.....",
+      "..RRRRRRR...",
+      "...RRRRR....",
+      ".RRRRRRRRR..",
+      "..RRRRRRR...",
+      "...RRRRR....",
+      "...RR.RR....",
+      "...RR.RR....",
+      "............",
+    ],
+  },
+  {
+    name: "Japon - Torii",
+    grid: [
+      "............",
+      ".RRRRRRRRRR.",
+      "...RRRRRR...",
+      "...RRRRRR...",
+      "...RRRRRR...",
+      "..RR....RR..",
+      "..RR....RR..",
+      "..RR....RR..",
+      ".RRR....RRR.",
+      "............",
+    ],
+  },
+  {
+    name: "Bresil - Ballon",
+    grid: [
+      "....YYYY....",
+      "..YYYYYYYY..",
+      ".YYGGGGGGYY.",
+      ".YGGGBBGGGY.",
+      ".YGGGBBGGGY.",
+      ".YYGGGGGGYY.",
+      "..YYYYYYYY..",
+      "....YYYY....",
+      "............",
+      "............",
+    ],
+  },
+  {
+    name: "Egypte - Pyramide",
+    grid: [
+      ".....Y......",
+      "....YYY.....",
+      "...YYYYY....",
+      "..YYYYYYY...",
+      ".YYYYYYYYY..",
+      "YYYYYYYYYYYY",
+      "...Y....Y...",
+      "..YY....YY..",
+      ".YYY....YYY.",
       "............",
     ],
   },
@@ -160,10 +325,10 @@ const BRICK_COLORS = {
 };
 
 const BONUS_TYPES = [
-  { id: "long_paddle", name: "Raquette XL", icon: "P+", color: "#7ce8ff" },
-  { id: "multiball", name: "Double Balle", icon: "2B", color: "#ffd36b" },
-  { id: "extra_life", name: "Vie Bonus", icon: "+1", color: "#8dff91" },
-  { id: "slow_ball", name: "Balle Lente", icon: "SL", color: "#ff9ed2" },
+  { id: "long_paddle", name: "Raquette XL", icon: "P+", color: "#7ce8ff", weight: 1 },
+  { id: "multiball", name: "Double Balle", icon: "2B", color: "#ffd36b", weight: 1 },
+  { id: "extra_life", name: "Vies Bonus", icon: "+2", color: "#8dff91", weight: 2.4, lives: 2 },
+  { id: "slow_ball", name: "Balle Lente", icon: "SL", color: "#ff9ed2", weight: 1 },
 ];
 
 const paddle = {
@@ -181,7 +346,7 @@ function createBall(x, y, vx = 260, vy = -320) {
     vx,
     vy,
     radius: 9,
-    maxSpeed: 860,
+    maxSpeed: state.isPortraitMode ? 900 : 860,
   };
 }
 
@@ -217,6 +382,7 @@ const state = {
   touchTargetX: WORLD_WIDTH / 2,
   notice: "",
   noticeTimer: 0,
+  isPortraitMode: false,
 };
 
 let previousTime = 0;
@@ -234,8 +400,107 @@ function randomItem(list) {
   return list[Math.floor(Math.random() * list.length)];
 }
 
+function randomWeightedItem(list, weightKey = "weight") {
+  let total = 0;
+  for (let i = 0; i < list.length; i += 1) {
+    total += Math.max(0, Number(list[i][weightKey]) || 0);
+  }
+  if (total <= 0) return randomItem(list);
+
+  let roll = Math.random() * total;
+  for (let i = 0; i < list.length; i += 1) {
+    roll -= Math.max(0, Number(list[i][weightKey]) || 0);
+    if (roll <= 0) return list[i];
+  }
+  return list[list.length - 1];
+}
+
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
+}
+
+function getBrickLayout() {
+  return {
+    top: WORLD_HEIGHT * (state.isPortraitMode ? 0.075 : 0.115),
+    sideMargin: WORLD_WIDTH * (state.isPortraitMode ? 0.02 : 0.015),
+    gap: Math.max(3, WORLD_WIDTH * (state.isPortraitMode ? 0.006 : 0.0042)),
+  };
+}
+
+function fitCanvasToViewport() {
+  if (!arenaWrap) return;
+  const rect = arenaWrap.getBoundingClientRect();
+  if (rect.width < 8 || rect.height < 8) return;
+  const scale = Math.min(rect.width / WORLD_WIDTH, rect.height / WORLD_HEIGHT);
+  const cssWidth = Math.max(12, Math.floor(WORLD_WIDTH * scale));
+  const cssHeight = Math.max(12, Math.floor(WORLD_HEIGHT * scale));
+  canvas.style.width = `${cssWidth}px`;
+  canvas.style.height = `${cssHeight}px`;
+}
+
+function updateWorldBounds(portraitMode, preserveObjects = true) {
+  const target = portraitMode ? PORTRAIT_WORLD : LANDSCAPE_WORLD;
+  if (target.width === WORLD_WIDTH && target.height === WORLD_HEIGHT) {
+    fitCanvasToViewport();
+    return;
+  }
+
+  const oldWidth = WORLD_WIDTH;
+  const oldHeight = WORLD_HEIGHT;
+  const scaleX = target.width / oldWidth;
+  const scaleY = target.height / oldHeight;
+
+  WORLD_WIDTH = target.width;
+  WORLD_HEIGHT = target.height;
+  state.isPortraitMode = portraitMode;
+  document.body.classList.toggle("portrait-mode", portraitMode);
+  canvas.width = WORLD_WIDTH;
+  canvas.height = WORLD_HEIGHT;
+
+  if (preserveObjects) {
+    paddle.width = clamp(paddle.width * scaleX, 96, 240);
+    paddle.x = clamp(paddle.x * scaleX, 8, WORLD_WIDTH - paddle.width - 8);
+    paddle.y = WORLD_HEIGHT - 36;
+    state.basePaddleWidth = clamp(state.basePaddleWidth * scaleX, 96, 220);
+    state.touchTargetX *= scaleX;
+
+    for (let i = 0; i < state.balls.length; i += 1) {
+      const ball = state.balls[i];
+      ball.x *= scaleX;
+      ball.y *= scaleY;
+      ball.vx *= scaleX;
+      ball.vy *= scaleY;
+      ball.maxSpeed = portraitMode ? 900 : 860;
+      stabilizeBall(ball);
+    }
+
+    for (let i = 0; i < state.bricks.length; i += 1) {
+      const brick = state.bricks[i];
+      brick.x *= scaleX;
+      brick.y *= scaleY;
+      brick.w *= scaleX;
+      brick.h *= scaleY;
+    }
+
+    for (let i = 0; i < state.fallingBonuses.length; i += 1) {
+      const bonus = state.fallingBonuses[i];
+      bonus.x *= scaleX;
+      bonus.y *= scaleY;
+      bonus.w *= scaleX;
+      bonus.h *= scaleY;
+      bonus.vy *= scaleY;
+    }
+
+    for (let i = 0; i < state.particles.length; i += 1) {
+      state.particles[i].x *= scaleX;
+      state.particles[i].y *= scaleY;
+    }
+  } else {
+    paddle.y = WORLD_HEIGHT - 36;
+    state.touchTargetX = WORLD_WIDTH * 0.5;
+  }
+
+  fitCanvasToViewport();
 }
 
 function stabilizeBall(ball) {
@@ -329,6 +594,7 @@ function createBricks(level) {
   state.patternName = pattern.name;
   const rows = pattern.grid.length;
   const cols = pattern.grid[0].length;
+  const layout = getBrickLayout();
 
   let activeCount = 0;
   for (let r = 0; r < rows; r += 1) {
@@ -340,9 +606,13 @@ function createBricks(level) {
   const bonusCount = Math.max(1, Math.round(activeCount * BONUS_BRICK_RATIO));
   const bonusSlots = new Set(shuffleArray([...Array(activeCount).keys()]).slice(0, bonusCount));
   const bonusVerbs = sampleVerbs(bonusCount);
-  const usableWidth = WORLD_WIDTH - BRICK_SIDE_MARGIN * 2 - BRICK_GAP * (cols - 1);
+  const usableWidth = WORLD_WIDTH - layout.sideMargin * 2 - layout.gap * (cols - 1);
   const brickWidth = usableWidth / cols;
-  const brickHeight = clamp((WORLD_HEIGHT * 0.42 - BRICK_GAP * (rows - 1)) / rows, 19, 30);
+  const brickHeight = clamp(
+    (WORLD_HEIGHT * (state.isPortraitMode ? 0.34 : 0.42) - layout.gap * (rows - 1)) / rows,
+    state.isPortraitMode ? 17 : 19,
+    state.isPortraitMode ? 28 : 30,
+  );
 
   const bricks = [];
   let activeIdx = 0;
@@ -351,10 +621,10 @@ function createBricks(level) {
     for (let c = 0; c < cols; c += 1) {
       const code = pattern.grid[r][c];
       if (code === ".") continue;
-      const x = BRICK_SIDE_MARGIN + c * (brickWidth + BRICK_GAP);
-      const y = BRICK_TOP + r * (brickHeight + BRICK_GAP);
+      const x = layout.sideMargin + c * (brickWidth + layout.gap);
+      const y = layout.top + r * (brickHeight + layout.gap);
       const hasBonus = bonusSlots.has(activeIdx);
-      const bonusType = hasBonus ? randomItem(BONUS_TYPES) : null;
+      const bonusType = hasBonus ? randomWeightedItem(BONUS_TYPES) : null;
       bricks.push({
         x,
         y,
@@ -382,9 +652,11 @@ function resetLevel(level, keepStats = true) {
   }
   state.level = level;
   state.effects.paddleTimer = 0;
-  state.basePaddleWidth = clamp(150 - (level - 1) * 3, 112, 150);
+  const maxBase = clamp(WORLD_WIDTH * 0.25, 130, 190);
+  state.basePaddleWidth = clamp(maxBase - (level - 1) * 3, 106, maxBase);
   paddle.width = state.basePaddleWidth;
   paddle.x = WORLD_WIDTH * 0.5 - paddle.width * 0.5;
+  paddle.y = WORLD_HEIGHT - 36;
   state.bricks = createBricks(level);
   state.remaining = state.bricks.length;
   state.fallingBonuses = [];
@@ -394,6 +666,7 @@ function resetLevel(level, keepStats = true) {
   hideQuiz();
   resetBalls(true);
   showNotice(`Motif ${state.patternName}`);
+  fitCanvasToViewport();
   refreshHud();
 }
 
@@ -530,6 +803,7 @@ function createBonusQuestion(bonus) {
 }
 
 function applyBonus(typeId) {
+  const bonusDef = BONUS_TYPES.find((bonus) => bonus.id === typeId);
   if (typeId === "long_paddle") {
     state.effects.paddleTimer += 10;
     paddle.width = clamp(paddle.width + 34, state.basePaddleWidth, 240);
@@ -545,8 +819,9 @@ function applyBonus(typeId) {
     }
     showNotice("Bonus actif: Double Balle", 2.4);
   } else if (typeId === "extra_life") {
-    state.lives += 1;
-    showNotice("Bonus actif: +1 Vie", 2.4);
+    const livesGain = Math.max(1, Number(bonusDef?.lives) || 1);
+    state.lives += livesGain;
+    showNotice(`Bonus actif: +${livesGain} vies`, 2.4);
   } else if (typeId === "slow_ball") {
     for (let i = 0; i < state.balls.length; i += 1) {
       const ball = state.balls[i];
@@ -1056,16 +1331,18 @@ function drawNotice() {
 
 function drawPatternTag() {
   if (!state.patternName || !state.running) return;
+  const label = `Motif: ${state.patternName}`;
+  ctx.font = "700 13px Trebuchet MS, sans-serif";
+  const tagWidth = clamp(ctx.measureText(label).width + 20, 170, WORLD_WIDTH * 0.64);
   ctx.fillStyle = "rgba(0,0,0,0.28)";
-  roundRect(12, 10, 246, 28, 7);
+  roundRect(12, 10, tagWidth, 28, 7);
   ctx.fill();
   ctx.strokeStyle = "rgba(255,255,255,0.25)";
   ctx.stroke();
   ctx.fillStyle = "#f2f8ff";
-  ctx.font = "700 13px Trebuchet MS, sans-serif";
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
-  ctx.fillText(`Motif: ${state.patternName}`, 20, 24);
+  ctx.fillText(label, 20, 24);
 }
 
 function drawCombo() {
@@ -1106,7 +1383,15 @@ function setTouchTarget(clientX) {
 
 function isLowControlZone(clientY) {
   const rect = canvas.getBoundingClientRect();
-  return clientY >= rect.top + rect.height * 0.58;
+  const lowerActivation = rect.top + rect.height * (state.isPortraitMode ? 0.65 : 0.58);
+  const iphoneSafeBottom = state.isPortraitMode ? 46 : 26;
+  const safeLimit = rect.bottom - iphoneSafeBottom;
+  return clientY >= lowerActivation && clientY <= safeLimit;
+}
+
+function refreshResponsiveLayout(preserveObjects = true) {
+  const portraitMode = window.innerHeight > window.innerWidth;
+  updateWorldBounds(portraitMode, preserveObjects);
 }
 
 document.addEventListener("keydown", (event) => {
@@ -1200,6 +1485,22 @@ canvas.addEventListener("pointercancel", () => {
   state.touchPointerId = null;
 });
 
+window.addEventListener("resize", () => {
+  refreshResponsiveLayout(true);
+});
+
+window.addEventListener("orientationchange", () => {
+  setTimeout(() => {
+    refreshResponsiveLayout(true);
+  }, 90);
+});
+
+if (window.visualViewport) {
+  window.visualViewport.addEventListener("resize", () => {
+    fitCanvasToViewport();
+  });
+}
+
 showMainOverlay(
   "BreakVerb",
   "Mode casse-brique classique: les briques cassent directement. Les questions arrivent sur les bonus qui tombent.",
@@ -1212,5 +1513,6 @@ showMainOverlay(
   },
 );
 
+refreshResponsiveLayout(false);
 refreshHud();
 requestAnimationFrame(loop);
