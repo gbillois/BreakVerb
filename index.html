@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>BreakVerb - Casse-brique des verbes irréguliers</title>
+    <title>BreakVerb - Irregular Verbs Brick Breaker</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -17,63 +17,81 @@
       <header class="hud">
         <h1>BreakVerb</h1>
         <div class="stats">
-          <p>Score: <span id="score">0</span></p>
-          <p>Best: <span id="bestScore">0</span></p>
-          <p>Vies: <span id="lives">3</span></p>
-          <p>Niveau: <span id="level">1</span></p>
-          <p>Reste: <span id="remaining">0</span></p>
-          <p>Mode: <span id="modeLabel">Normal</span></p>
+          <p><span id="labelScore">Score</span>: <span id="score">0</span></p>
+          <p><span id="labelBestScore">Best</span>: <span id="bestScore">0</span></p>
+          <p><span id="labelLives">Lives</span>: <span id="lives">3</span></p>
+          <p><span id="labelLevel">Level</span>: <span id="level">1</span></p>
+          <p><span id="labelRemaining">Left</span>: <span id="remaining">0</span></p>
+          <p><span id="labelMode">Mode</span>: <span id="modeLabel">Normal</span></p>
         </div>
         <button id="pauseBtn" class="main-btn pause-btn" type="button">Pause</button>
       </header>
 
       <section class="arena-wrap">
-        <canvas id="gameCanvas" width="960" height="540" aria-label="Jeu casse-brique éducatif"></canvas>
+        <canvas id="gameCanvas" width="960" height="540" aria-label="Educational brick breaker game"></canvas>
 
         <div id="screenOverlay" class="overlay visible">
-          <div class="panel">
-            <h2 id="overlayTitle">BreakVerb</h2>
-            <p id="overlayText">
-              Casse les briques de verbes irréguliers et réponds correctement pour les détruire.
-            </p>
-            <div class="difficulty-box">
-              <p>Difficulté quiz</p>
-              <div class="difficulty-buttons">
-                <button type="button" class="difficulty-btn" data-difficulty="easy">Facile</button>
-                <button type="button" class="difficulty-btn active" data-difficulty="normal">Normal</button>
-                <button type="button" class="difficulty-btn" data-difficulty="expert">Expert</button>
+          <div class="panel menu-panel">
+            <div id="menuHomeView" class="menu-view">
+              <h2 id="overlayTitle">BreakVerb</h2>
+              <p id="overlayText">Classic brick breaker + irregular verbs.</p>
+              <div class="menu-actions">
+                <button id="startBtn" class="main-btn" type="button">Start game</button>
+                <button id="openSettingsBtn" class="main-btn alt-btn" type="button">Settings</button>
+                <button id="openLeaderboardBtn" class="main-btn alt-btn" type="button">Leaderboard</button>
               </div>
-              <p class="difficulty-hint">Facile: illimité • Normal: 10s • Expert: 5s</p>
+              <p id="homeHint" class="hint">
+                Keyboard: ← → or A D • Space to launch the ball
+                <br />
+                Mobile/Tablet: slide your finger in the lower zone
+                <br />
+                Space pause/resume • R restart
+              </p>
             </div>
-            <button id="startBtn" class="main-btn">Lancer la partie</button>
-            <p class="hint">
-              Clavier: ← → ou A D • Espace pour lancer la balle
-              <br />
-              Mobile/Tablette: glisse le doigt dans la zone basse du jeu
-              <br />
-              P pause/reprise • R relancer
-            </p>
-            <div id="nameEntry" class="name-entry hidden">
-              <p>Nouveau record. Entrez votre pseudo:</p>
-              <input
-                id="playerNameInput"
-                type="text"
-                maxlength="16"
-                autocomplete="nickname"
-                placeholder="PLAYER"
-              />
-              <button id="saveScoreBtn" class="main-btn small-btn" type="button">Enregistrer le score</button>
+
+            <div id="menuSettingsView" class="menu-view hidden">
+              <h2 id="settingsTitle">Settings</h2>
+              <div class="difficulty-box">
+                <p id="difficultyTitle">Quiz difficulty</p>
+                <div class="difficulty-buttons">
+                  <button type="button" class="difficulty-btn" data-difficulty="easy">Easy</button>
+                  <button type="button" class="difficulty-btn active" data-difficulty="normal">Normal</button>
+                  <button type="button" class="difficulty-btn" data-difficulty="expert">Expert</button>
+                </div>
+                <p id="difficultyHint" class="difficulty-hint">Easy: unlimited • Normal: 10s • Expert: 5s</p>
+              </div>
+              <p id="settingsCredit" class="settings-credit">A game made by Gérôme BILLOIS</p>
+              <button id="backFromSettingsBtn" class="main-btn small-btn" type="button">Back</button>
             </div>
-            <div class="leaderboard-box">
-              <h3>Leaderboard</h3>
-              <ol id="leaderboardList"></ol>
+
+            <div id="menuLeaderboardView" class="menu-view hidden">
+              <h2 id="leaderboardTitle">Leaderboard</h2>
+              <div id="nameEntry" class="name-entry hidden">
+                <p id="nameEntryLabel">New top score. Enter your nickname:</p>
+                <input
+                  id="playerNameInput"
+                  type="text"
+                  maxlength="16"
+                  autocomplete="nickname"
+                  placeholder="PLAYER"
+                />
+                <button id="saveScoreBtn" class="main-btn small-btn" type="button">Save score</button>
+              </div>
+              <div class="leaderboard-box">
+                <h3 id="leaderboardHeading">Leaderboard</h3>
+                <ol id="leaderboardList"></ol>
+              </div>
+              <div class="menu-actions">
+                <button id="playFromLeaderboardBtn" class="main-btn" type="button">Start game</button>
+                <button id="backFromLeaderboardBtn" class="main-btn small-btn alt-btn" type="button">Back</button>
+              </div>
             </div>
           </div>
         </div>
 
         <div id="quizOverlay" class="overlay hidden" aria-live="polite">
           <div class="panel quiz-panel">
-            <h2>Question verbale</h2>
+            <h2 id="quizTitle">Verb Question</h2>
             <p id="quizPrompt">...</p>
             <p id="quizTimer" class="quiz-timer">4.0s</p>
             <div id="quizChoices" class="choices"></div>

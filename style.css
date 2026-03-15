@@ -159,6 +159,26 @@ canvas {
   box-shadow: var(--shadow);
 }
 
+.menu-panel {
+  max-width: 760px;
+}
+
+.menu-view.hidden {
+  display: none;
+}
+
+.menu-actions {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.alt-btn {
+  background: linear-gradient(180deg, #4f74d4, #2f4f9f);
+  box-shadow: 0 3px 0 #1b2f65;
+}
+
 .panel h2 {
   margin-top: 0;
   margin-bottom: 10px;
@@ -193,6 +213,7 @@ canvas {
 }
 
 .hint {
+  margin-top: 10px;
   margin-bottom: 0;
   opacity: 0.93;
   color: var(--subtle);
@@ -241,6 +262,13 @@ canvas {
   opacity: 0.95;
   color: #d7e3ff;
   font-size: 0.86rem;
+}
+
+.settings-credit {
+  margin: 12px 0 8px;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #dce9ff;
 }
 
 .name-entry {
@@ -382,6 +410,11 @@ canvas {
 
   .panel {
     padding: 14px;
+  }
+
+  .menu-actions {
+    grid-template-columns: 1fr;
+    gap: 8px;
   }
 
   .arena-wrap {

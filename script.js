@@ -8,18 +8,40 @@ const levelEl = document.getElementById("level");
 const remainingEl = document.getElementById("remaining");
 const modeLabelEl = document.getElementById("modeLabel");
 const pauseBtn = document.getElementById("pauseBtn");
+const labelScoreEl = document.getElementById("labelScore");
+const labelBestScoreEl = document.getElementById("labelBestScore");
+const labelLivesEl = document.getElementById("labelLives");
+const labelLevelEl = document.getElementById("labelLevel");
+const labelRemainingEl = document.getElementById("labelRemaining");
+const labelModeEl = document.getElementById("labelMode");
 
 const screenOverlay = document.getElementById("screenOverlay");
 const overlayTitle = document.getElementById("overlayTitle");
 const overlayText = document.getElementById("overlayText");
 const startBtn = document.getElementById("startBtn");
+const openSettingsBtn = document.getElementById("openSettingsBtn");
+const openLeaderboardBtn = document.getElementById("openLeaderboardBtn");
+const backFromSettingsBtn = document.getElementById("backFromSettingsBtn");
+const backFromLeaderboardBtn = document.getElementById("backFromLeaderboardBtn");
+const playFromLeaderboardBtn = document.getElementById("playFromLeaderboardBtn");
+const menuHomeView = document.getElementById("menuHomeView");
+const menuSettingsView = document.getElementById("menuSettingsView");
+const menuLeaderboardView = document.getElementById("menuLeaderboardView");
+const settingsTitleEl = document.getElementById("settingsTitle");
+const difficultyTitleEl = document.getElementById("difficultyTitle");
+const difficultyHintEl = document.getElementById("difficultyHint");
+const homeHintEl = document.getElementById("homeHint");
+const leaderboardTitleEl = document.getElementById("leaderboardTitle");
+const leaderboardHeadingEl = document.getElementById("leaderboardHeading");
 const nameEntry = document.getElementById("nameEntry");
+const nameEntryLabel = document.getElementById("nameEntryLabel");
 const playerNameInput = document.getElementById("playerNameInput");
 const saveScoreBtn = document.getElementById("saveScoreBtn");
 const leaderboardList = document.getElementById("leaderboardList");
 const difficultyButtons = Array.from(document.querySelectorAll(".difficulty-btn"));
 
 const quizOverlay = document.getElementById("quizOverlay");
+const quizTitleEl = document.getElementById("quizTitle");
 const quizPrompt = document.getElementById("quizPrompt");
 const quizTimerEl = document.getElementById("quizTimer");
 const quizChoices = document.getElementById("quizChoices");
@@ -39,10 +61,171 @@ const SUPER_CANNON_SPEED = 640;
 const LEADERBOARD_KEY = "breakverb_leaderboard_v1";
 const SETTINGS_KEY = "breakverb_settings_v1";
 
+const I18N = {
+  fr: {
+    document_title: "BreakVerb - Casse-brique des verbes irréguliers",
+    canvas_aria: "Jeu casse-brique éducatif",
+    game_title: "BreakVerb",
+    menu_intro:
+      "Mode casse-brique classique: questions sur bonus. Passe combo 10+ ou casse la GOLD brick pour lancer un super défi x3.",
+    menu_start: "Démarrer",
+    menu_settings: "Réglages",
+    menu_leaderboard: "Leaderboard",
+    menu_back: "Retour",
+    pause: "Pause",
+    resume: "Reprendre",
+    stats_score: "Score",
+    stats_best: "Best",
+    stats_lives: "Vies",
+    stats_level: "Niveau",
+    stats_remaining: "Reste",
+    stats_mode: "Mode",
+    difficulty_title: "Difficulté quiz",
+    difficulty_hint: "Facile: illimité • Normal: 10s • Expert: 5s",
+    difficulty_easy: "Facile",
+    difficulty_normal: "Normal",
+    difficulty_expert: "Expert",
+    controls_hint:
+      "Clavier: ← → ou A D • Espace pour lancer la balle\nMobile/Tablette: glisse le doigt dans la zone basse du jeu\nEspace pause/reprise • R relancer",
+    leaderboard_title: "Leaderboard",
+    leaderboard_empty: "Aucun score pour le moment.",
+    leaderboard_row: "{name} — {score} pts (Niv. {level})",
+    name_entry_label: "Nouveau top score. Entre ton pseudo:",
+    save_score: "Enregistrer le score",
+    quiz_title: "Question verbale",
+    quiz_keyboard_hint: "Choix clavier: 1 2 3, ou flèches + Entrée.",
+    quiz_time_unlimited: "Temps: illimité",
+    quiz_time_left: "{seconds}s",
+    quiz_feedback_bonus_ok: "Correct. Bonus gagné: {name}.",
+    quiz_feedback_wrong: "Raté. Bonne réponse: {answer}.",
+    quiz_feedback_super_done: "Défi validé: canons de feu débloqués.",
+    quiz_feedback_super_step: "Correct ({solved}/{total}).",
+    bonus_long_paddle: "Raquette XL",
+    bonus_multiball: "Double Balle",
+    bonus_extra_life: "Vies Bonus",
+    bonus_slow_ball: "Balle Lente",
+    notice_pattern: "Motif {name}",
+    notice_bonus_long_paddle: "Bonus actif: Raquette XL (10s)",
+    notice_bonus_multiball: "Bonus actif: Double Balle",
+    notice_bonus_lives: "Bonus actif: +{count} vies",
+    notice_bonus_slow_ball: "Bonus actif: Balle Lente",
+    notice_super_bonus: "SUPER BONUS: canons de feu actives",
+    notice_super_trigger_golden: "Brique dorée: super défi x3",
+    notice_super_trigger_combo: "Combo 10+: super défi x3",
+    notice_life_lost: "Vie perdue",
+    notice_cannons_end: "Canons de feu terminés",
+    notice_paddle_end: "Raquette XL terminée",
+    notice_pause: "Pause",
+    notice_resume: "Reprise",
+    notice_press_space: "Appuie sur Espace pour lancer la balle",
+    game_over_title: "Partie terminée",
+    game_over_text_qualifies: "Top score potentiel. Entre ton pseudo et enregistre ton score.",
+    game_over_text_regular: "Tu as perdu toutes tes vies. Relance une partie pour battre ton score.",
+    game_over_replay: "Rejouer",
+    level_complete_title: "Niveau {level} terminé",
+    level_complete_text: "Prochain motif: {name}. Vitesse et challenge augmentent.",
+    level_next: "Niveau suivant",
+    pattern_prefix: "Motif: {name}",
+    combo_label: "Combo x{combo}",
+    super_status: "CANONS {seconds}s",
+    brand_player: "PLAYER",
+    gold_label: "GOLD",
+    super_points: "SUPER BONUS",
+  },
+  en: {
+    document_title: "BreakVerb - Irregular Verbs Brick Breaker",
+    canvas_aria: "Educational brick breaker game",
+    game_title: "BreakVerb",
+    menu_intro:
+      "Classic brick breaker with quiz bonuses. Reach 10+ combo or break the GOLD brick to trigger a 3-question super challenge.",
+    menu_start: "Start Game",
+    menu_settings: "Settings",
+    menu_leaderboard: "Leaderboard",
+    menu_back: "Back",
+    pause: "Pause",
+    resume: "Resume",
+    stats_score: "Score",
+    stats_best: "Best",
+    stats_lives: "Lives",
+    stats_level: "Level",
+    stats_remaining: "Left",
+    stats_mode: "Mode",
+    difficulty_title: "Quiz difficulty",
+    difficulty_hint: "Easy: unlimited • Normal: 10s • Expert: 5s",
+    difficulty_easy: "Easy",
+    difficulty_normal: "Normal",
+    difficulty_expert: "Expert",
+    controls_hint:
+      "Keyboard: ← → or A D • Space to launch the ball\nMobile/Tablet: slide in the lower control area\nSpace pause/resume • R restart",
+    leaderboard_title: "Leaderboard",
+    leaderboard_empty: "No scores yet.",
+    leaderboard_row: "{name} — {score} pts (Lvl {level})",
+    name_entry_label: "New top score. Enter your nickname:",
+    save_score: "Save score",
+    quiz_title: "Verb Question",
+    quiz_keyboard_hint: "Keyboard choices: 1 2 3, or arrows + Enter.",
+    quiz_time_unlimited: "Time: unlimited",
+    quiz_time_left: "{seconds}s",
+    quiz_feedback_bonus_ok: "Correct. Bonus won: {name}.",
+    quiz_feedback_wrong: "Wrong. Correct answer: {answer}.",
+    quiz_feedback_super_done: "Challenge cleared: fire cannons unlocked.",
+    quiz_feedback_super_step: "Correct ({solved}/{total}).",
+    bonus_long_paddle: "Long Paddle",
+    bonus_multiball: "Double Ball",
+    bonus_extra_life: "Extra Lives",
+    bonus_slow_ball: "Slow Ball",
+    notice_pattern: "Pattern {name}",
+    notice_bonus_long_paddle: "Bonus active: Long Paddle (10s)",
+    notice_bonus_multiball: "Bonus active: Double Ball",
+    notice_bonus_lives: "Bonus active: +{count} lives",
+    notice_bonus_slow_ball: "Bonus active: Slow Ball",
+    notice_super_bonus: "SUPER BONUS: fire cannons active",
+    notice_super_trigger_golden: "Golden brick: 3-question super challenge",
+    notice_super_trigger_combo: "10+ combo: 3-question super challenge",
+    notice_life_lost: "Life lost",
+    notice_cannons_end: "Fire cannons ended",
+    notice_paddle_end: "Long paddle ended",
+    notice_pause: "Pause",
+    notice_resume: "Resume",
+    notice_press_space: "Press Space to launch the ball",
+    game_over_title: "Game Over",
+    game_over_text_qualifies: "Potential high score. Enter your name and save.",
+    game_over_text_regular: "You lost all lives. Start again to beat your score.",
+    game_over_replay: "Play Again",
+    level_complete_title: "Level {level} complete",
+    level_complete_text: "Next pattern: {name}. Speed and challenge increase.",
+    level_next: "Next Level",
+    pattern_prefix: "Pattern: {name}",
+    combo_label: "Combo x{combo}",
+    super_status: "CANNONS {seconds}s",
+    brand_player: "PLAYER",
+    gold_label: "GOLD",
+    super_points: "SUPER BONUS",
+  },
+};
+
+const LEVEL_NAME_EN = {
+  "UK - Croix de St George": "UK - St George Cross",
+  "UK - Big Ben": "UK - Big Ben",
+  "UK - Couronne Royale": "UK - Royal Crown",
+  "UK - Union Jack": "UK - Union Jack",
+  "USA - Aigle": "USA - Eagle",
+  "USA - Statue de la Liberte": "USA - Statue of Liberty",
+  "USA - Stars and Stripes": "USA - Stars and Stripes",
+  "Australie - Koala": "Australia - Koala",
+  "Australie - Boomerang": "Australia - Boomerang",
+  "Australie - Opera de Sydney": "Australia - Sydney Opera",
+  "France - Tour Eiffel": "France - Eiffel Tower",
+  "Canada - Feuille d Erable": "Canada - Maple Leaf",
+  "Japon - Torii": "Japan - Torii",
+  "Bresil - Ballon": "Brazil - Football",
+  "Egypte - Pyramide": "Egypt - Pyramid",
+};
+
 const DIFFICULTY_MODES = {
-  easy: { label: "Facile", quizTime: null },
-  normal: { label: "Normal", quizTime: 10 },
-  expert: { label: "Expert", quizTime: 5 },
+  easy: { quizTime: null },
+  normal: { quizTime: 10 },
+  expert: { quizTime: 5 },
 };
 
 canvas.width = WORLD_WIDTH;
@@ -387,6 +570,7 @@ const state = {
   comboChallengeTriggered: false,
   remaining: 0,
   patternName: "",
+  patternOrderIndices: [],
   basePaddleWidth: 148,
   keys: {
     left: false,
@@ -765,8 +949,26 @@ function sampleVerbs(count) {
   return picked.slice(0, count);
 }
 
+function buildPatternOrder() {
+  return shuffleArray([...Array(LEVEL_PATTERNS.length).keys()]);
+}
+
+function ensurePatternOrderForLevel(level) {
+  const safeLevel = Math.max(1, Number(level) || 1);
+  const requiredLength = safeLevel;
+  while (state.patternOrderIndices.length < requiredLength) {
+    state.patternOrderIndices.push(...buildPatternOrder());
+  }
+}
+
+function getPatternForLevel(level) {
+  ensurePatternOrderForLevel(level);
+  const patternIndex = state.patternOrderIndices[Math.max(1, level) - 1];
+  return LEVEL_PATTERNS[patternIndex] || LEVEL_PATTERNS[0];
+}
+
 function createBricks(level) {
-  const pattern = LEVEL_PATTERNS[(level - 1) % LEVEL_PATTERNS.length];
+  const pattern = getPatternForLevel(level);
   state.patternName = pattern.name;
   const rows = pattern.grid.length;
   const cols = pattern.grid[0].length;
@@ -778,15 +980,16 @@ function createBricks(level) {
       if (pattern.grid[r][c] !== ".") activeCount += 1;
     }
   }
+  if (activeCount <= 0) return [];
 
-  const bonusCount = Math.max(1, Math.round(activeCount * BONUS_BRICK_RATIO));
-  const bonusSlots = new Set(shuffleArray([...Array(activeCount).keys()]).slice(0, bonusCount));
-  const noBonusSlots = [];
+  const goldenSlot = Math.floor(Math.random() * activeCount);
+  const bonusCandidates = [];
   for (let i = 0; i < activeCount; i += 1) {
-    if (!bonusSlots.has(i)) noBonusSlots.push(i);
+    if (i !== goldenSlot) bonusCandidates.push(i);
   }
-  const goldenSource = noBonusSlots.length > 0 ? noBonusSlots : [...Array(activeCount).keys()];
-  const goldenSlot = randomItem(goldenSource);
+  const rawBonusCount = Math.max(1, Math.round(activeCount * BONUS_BRICK_RATIO));
+  const bonusCount = Math.min(rawBonusCount, bonusCandidates.length);
+  const bonusSlots = new Set(shuffleArray(bonusCandidates).slice(0, bonusCount));
   const bonusVerbs = sampleVerbs(bonusCount);
   const usableWidth = WORLD_WIDTH - layout.sideMargin * 2 - layout.gap * (cols - 1);
   const brickWidth = usableWidth / cols;
@@ -833,6 +1036,7 @@ function resetLevel(level, keepStats = true) {
     state.score = 0;
     state.lives = 3;
     state.combo = 0;
+    state.patternOrderIndices = [];
   }
   state.paused = false;
   state.countdownActive = false;
@@ -1054,13 +1258,15 @@ function activateSuperCannons() {
 }
 
 function queueSuperChallenge(trigger) {
-  if (state.pendingSuperChallenges > 0 || state.superChallenge) return;
+  if (state.pendingSuperChallenges > 0 || state.superChallenge) return false;
   state.pendingSuperChallenges = 1;
   if (trigger === "golden") {
     showNotice("Brique doree: super defi x3", 2.2);
   } else {
     showNotice("Combo 10+: super defi x3", 2.2);
   }
+  startNextQuestion();
+  return true;
 }
 
 function beginSuperChallenge() {
@@ -1109,10 +1315,7 @@ function startNextQuestion() {
         resolved: false,
       };
       state.awaitingAnswer = true;
-      showQuiz({
-        ...question,
-        prompt: `[Defi ${step}/${SUPER_CHALLENGE_QUESTIONS}] ${question.prompt}`,
-      });
+      showQuiz(question);
       return;
     }
   }
@@ -1206,20 +1409,15 @@ function spawnBurst(x, y, color) {
 
 function maybeDropBonus(brick) {
   if (!brick.hasBonus || !brick.bonusType || !brick.verb) return;
-  if (state.fallingBonuses.length >= 4) return;
   const type = brick.bonusType;
-  state.fallingBonuses.push({
-    x: brick.x + brick.w * 0.5,
-    y: brick.y + brick.h * 0.5,
-    vy: 120 + Math.random() * 55,
-    w: 94,
-    h: 34,
+  state.bonusQueue.push({
     typeId: type.id,
     name: type.name,
     icon: type.icon,
     color: type.color,
     verb: brick.verb,
   });
+  startNextQuestion();
 }
 
 function destroyBrick(brick, axis, ball, options = {}) {
@@ -1247,6 +1445,9 @@ function destroyBrick(brick, axis, ball, options = {}) {
   if (!state.comboChallengeTriggered && state.combo >= COMBO_SUPER_THRESHOLD) {
     state.comboChallengeTriggered = true;
     queueSuperChallenge("combo");
+  }
+  if (state.pendingSuperChallenges > 0 && !state.awaitingAnswer) {
+    startNextQuestion();
   }
   refreshHud();
 }
@@ -1318,7 +1519,7 @@ function loseLife() {
 
 function nextLevel() {
   state.running = false;
-  const nextPattern = LEVEL_PATTERNS[state.level % LEVEL_PATTERNS.length].name;
+  const nextPattern = getPatternForLevel(state.level + 1).name;
   showMainOverlay(
     `Niveau ${state.level} termine`,
     `Prochain motif: ${nextPattern}. Vitesse et challenge augmentent.`,
@@ -1668,6 +1869,11 @@ function drawBricks() {
       ctx.fillText("GOLD", brick.x + brick.w * 0.5 + 0.7, brick.y + brick.h * 0.5 + 0.7);
       ctx.fillStyle = "#fff7c8";
       ctx.fillText("GOLD", brick.x + brick.w * 0.5, brick.y + brick.h * 0.5);
+
+      ctx.textBaseline = "alphabetic";
+      ctx.font = `${brick.h < 23 ? 700 : 800} ${brick.h < 23 ? 10 : 12}px Nunito, Trebuchet MS, sans-serif`;
+      ctx.fillStyle = "rgba(255,246,184,0.92)";
+      ctx.fillText("*", brick.x + brick.w - 8, brick.y + 11);
     }
   }
 }
@@ -2094,7 +2300,7 @@ document.addEventListener("visibilitychange", () => {
 
 showMainOverlay(
   "BreakVerb",
-  "Mode casse-brique classique: les briques cassent directement. Les questions arrivent sur les bonus qui tombent.",
+  "Mode casse-brique classique: questions sur bonus. Passe combo 10+ ou casse la GOLD brick pour lancer un super defi x3.",
   "Lancer la partie",
   () => {
     startNewGame();
