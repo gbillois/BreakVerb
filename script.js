@@ -30,6 +30,7 @@ const menuLeaderboardView = document.getElementById("menuLeaderboardView");
 const settingsTitleEl = document.getElementById("settingsTitle");
 const difficultyTitleEl = document.getElementById("difficultyTitle");
 const difficultyHintEl = document.getElementById("difficultyHint");
+const settingsCreditEl = document.getElementById("settingsCredit");
 const homeHintEl = document.getElementById("homeHint");
 const leaderboardTitleEl = document.getElementById("leaderboardTitle");
 const leaderboardHeadingEl = document.getElementById("leaderboardHeading");
@@ -53,9 +54,9 @@ const PORTRAIT_WORLD = { width: 600, height: 960 };
 let WORLD_WIDTH = LANDSCAPE_WORLD.width;
 let WORLD_HEIGHT = LANDSCAPE_WORLD.height;
 const BONUS_BRICK_RATIO = 0.15;
-const COMBO_SUPER_THRESHOLD = 11;
+const COMBO_SUPER_THRESHOLD = 40;
 const SUPER_CHALLENGE_QUESTIONS = 3;
-const SUPER_CANNON_DURATION = 14;
+const SUPER_CANNON_DURATION = 5;
 const SUPER_CANNON_SHOT_INTERVAL = 0.26;
 const SUPER_CANNON_SPEED = 640;
 const LEADERBOARD_KEY = "breakverb_leaderboard_v1";
@@ -67,15 +68,16 @@ const I18N = {
     canvas_aria: "Jeu casse-brique éducatif",
     game_title: "BreakVerb",
     menu_intro:
-      "Mode casse-brique classique: questions sur bonus. Passe combo 10+ ou casse la GOLD brick pour lancer un super défi x3.",
+      "Mode casse-brique classique: questions sur bonus. Passe combo {combo}+ ou casse la brique GOLD pour lancer un super défi x3.",
     menu_start: "Démarrer",
     menu_settings: "Réglages",
-    menu_leaderboard: "Leaderboard",
+    menu_leaderboard: "Classement",
     menu_back: "Retour",
+    settings_credit: "Un jeu créé par Gérôme BILLOIS",
     pause: "Pause",
     resume: "Reprendre",
     stats_score: "Score",
-    stats_best: "Best",
+    stats_best: "Meilleur",
     stats_lives: "Vies",
     stats_level: "Niveau",
     stats_remaining: "Reste",
@@ -87,7 +89,7 @@ const I18N = {
     difficulty_expert: "Expert",
     controls_hint:
       "Clavier: ← → ou A D • Espace pour lancer la balle\nMobile/Tablette: glisse le doigt dans la zone basse du jeu\nEspace pause/reprise • R relancer",
-    leaderboard_title: "Leaderboard",
+    leaderboard_title: "Classement",
     leaderboard_empty: "Aucun score pour le moment.",
     leaderboard_row: "{name} — {score} pts (Niv. {level})",
     name_entry_label: "Nouveau top score. Entre ton pseudo:",
@@ -109,9 +111,9 @@ const I18N = {
     notice_bonus_multiball: "Bonus actif: Double Balle",
     notice_bonus_lives: "Bonus actif: +{count} vies",
     notice_bonus_slow_ball: "Bonus actif: Balle Lente",
-    notice_super_bonus: "SUPER BONUS: canons de feu actives",
+    notice_super_bonus: "SUPER BONUS: canons de feu actifs",
     notice_super_trigger_golden: "Brique dorée: super défi x3",
-    notice_super_trigger_combo: "Combo 10+: super défi x3",
+    notice_super_trigger_combo: "Combo {combo}+: super défi x3",
     notice_life_lost: "Vie perdue",
     notice_cannons_end: "Canons de feu terminés",
     notice_paddle_end: "Raquette XL terminée",
@@ -128,7 +130,7 @@ const I18N = {
     pattern_prefix: "Motif: {name}",
     combo_label: "Combo x{combo}",
     super_status: "CANONS {seconds}s",
-    brand_player: "PLAYER",
+    brand_player: "JOUEUR",
     gold_label: "GOLD",
     super_points: "SUPER BONUS",
   },
@@ -137,11 +139,12 @@ const I18N = {
     canvas_aria: "Educational brick breaker game",
     game_title: "BreakVerb",
     menu_intro:
-      "Classic brick breaker with quiz bonuses. Reach 10+ combo or break the GOLD brick to trigger a 3-question super challenge.",
+      "Classic brick breaker with quiz bonuses. Reach {combo}+ combo or break the GOLD brick to trigger a 3-question super challenge.",
     menu_start: "Start Game",
     menu_settings: "Settings",
     menu_leaderboard: "Leaderboard",
     menu_back: "Back",
+    settings_credit: "A game made by Gérôme BILLOIS",
     pause: "Pause",
     resume: "Resume",
     stats_score: "Score",
@@ -181,7 +184,7 @@ const I18N = {
     notice_bonus_slow_ball: "Bonus active: Slow Ball",
     notice_super_bonus: "SUPER BONUS: fire cannons active",
     notice_super_trigger_golden: "Golden brick: 3-question super challenge",
-    notice_super_trigger_combo: "10+ combo: 3-question super challenge",
+    notice_super_trigger_combo: "Combo {combo}+: 3-question super challenge",
     notice_life_lost: "Life lost",
     notice_cannons_end: "Fire cannons ended",
     notice_paddle_end: "Long paddle ended",
@@ -215,17 +218,24 @@ const LEVEL_NAME_EN = {
   "Australie - Koala": "Australia - Koala",
   "Australie - Boomerang": "Australia - Boomerang",
   "Australie - Opera de Sydney": "Australia - Sydney Opera",
-  "France - Tour Eiffel": "France - Eiffel Tower",
+  "Irlande - Harpe Celtique": "Ireland - Celtic Harp",
   "Canada - Feuille d Erable": "Canada - Maple Leaf",
-  "Japon - Torii": "Japan - Torii",
-  "Bresil - Ballon": "Brazil - Football",
-  "Egypte - Pyramide": "Egypt - Pyramid",
+  "Nouvelle-Zelande - Porte Maori": "New Zealand - Maori Gate",
+  "Jamaique - Soleil": "Jamaica - Sun",
+  "Afrique du Sud - Montagne": "South Africa - Mountain",
 };
 
 const DIFFICULTY_MODES = {
   easy: { quizTime: null },
   normal: { quizTime: 10 },
   expert: { quizTime: 5 },
+};
+
+const BONUS_NAME_KEYS = {
+  long_paddle: "bonus_long_paddle",
+  multiball: "bonus_multiball",
+  extra_life: "bonus_extra_life",
+  slow_ball: "bonus_slow_ball",
 };
 
 canvas.width = WORLD_WIDTH;
@@ -443,7 +453,7 @@ const LEVEL_PATTERNS = [
     ],
   },
   {
-    name: "France - Tour Eiffel",
+    name: "Irlande - Harpe Celtique",
     grid: [
       ".....BB.....",
       "....BBBB....",
@@ -473,7 +483,7 @@ const LEVEL_PATTERNS = [
     ],
   },
   {
-    name: "Japon - Torii",
+    name: "Nouvelle-Zelande - Porte Maori",
     grid: [
       "............",
       ".RRRRRRRRRR.",
@@ -488,7 +498,7 @@ const LEVEL_PATTERNS = [
     ],
   },
   {
-    name: "Bresil - Ballon",
+    name: "Jamaique - Soleil",
     grid: [
       "....YYYY....",
       "..YYYYYYYY..",
@@ -503,7 +513,7 @@ const LEVEL_PATTERNS = [
     ],
   },
   {
-    name: "Egypte - Pyramide",
+    name: "Afrique du Sud - Montagne",
     grid: [
       ".....Y......",
       "....YYY.....",
@@ -587,6 +597,7 @@ const state = {
   pendingQuestion: null,
   quizTimeLeft: 0,
   quizSelectedIndex: -1,
+  locale: "fr",
   difficulty: "normal",
   leaderboard: [],
   pendingLeaderboardScore: null,
@@ -602,6 +613,8 @@ const state = {
   noticeTimer: 0,
   isPortraitMode: false,
 };
+
+state.locale = detectLocale();
 
 let previousTime = 0;
 
@@ -656,13 +669,105 @@ function writeJsonStorage(key, data) {
   }
 }
 
+function detectLocale() {
+  const languages = Array.isArray(navigator.languages) && navigator.languages.length > 0
+    ? navigator.languages
+    : [navigator.language || "fr"];
+  for (let i = 0; i < languages.length; i += 1) {
+    const code = `${languages[i] || ""}`.toLowerCase();
+    if (code.startsWith("fr")) return "fr";
+    if (code.startsWith("en")) return "en";
+  }
+  return "en";
+}
+
+function formatText(template, vars = {}) {
+  return `${template}`.replace(/\{([a-z0-9_]+)\}/gi, (full, key) => {
+    if (Object.prototype.hasOwnProperty.call(vars, key)) return `${vars[key]}`;
+    return full;
+  });
+}
+
+function t(key, vars = {}) {
+  const locale = I18N[state.locale] ? state.locale : "en";
+  const source = I18N[locale][key] ?? I18N.en[key] ?? key;
+  return formatText(source, vars);
+}
+
+function localizePatternName(name) {
+  if (state.locale === "en") return LEVEL_NAME_EN[name] || name;
+  return name;
+}
+
+function difficultyLabel(mode) {
+  if (mode === "easy") return t("difficulty_easy");
+  if (mode === "expert") return t("difficulty_expert");
+  return t("difficulty_normal");
+}
+
+function bonusName(typeId, fallback = "") {
+  const key = BONUS_NAME_KEYS[typeId];
+  if (!key) return fallback || `${typeId}`;
+  return t(key);
+}
+
+function localizeBonusTypeNames() {
+  for (let i = 0; i < BONUS_TYPES.length; i += 1) {
+    const bonus = BONUS_TYPES[i];
+    bonus.name = bonusName(bonus.id, bonus.name);
+  }
+}
+
+function applyStaticTranslations() {
+  document.documentElement.lang = state.locale;
+  document.title = t("document_title");
+  if (canvas) canvas.setAttribute("aria-label", t("canvas_aria"));
+
+  if (labelScoreEl) labelScoreEl.textContent = t("stats_score");
+  if (labelBestScoreEl) labelBestScoreEl.textContent = t("stats_best");
+  if (labelLivesEl) labelLivesEl.textContent = t("stats_lives");
+  if (labelLevelEl) labelLevelEl.textContent = t("stats_level");
+  if (labelRemainingEl) labelRemainingEl.textContent = t("stats_remaining");
+  if (labelModeEl) labelModeEl.textContent = t("stats_mode");
+
+  if (overlayTitle) overlayTitle.textContent = t("game_title");
+  if (overlayText) overlayText.textContent = t("menu_intro", { combo: COMBO_SUPER_THRESHOLD });
+  if (startBtn) startBtn.textContent = t("menu_start");
+  if (openSettingsBtn) openSettingsBtn.textContent = t("menu_settings");
+  if (openLeaderboardBtn) openLeaderboardBtn.textContent = t("menu_leaderboard");
+  if (backFromSettingsBtn) backFromSettingsBtn.textContent = t("menu_back");
+  if (backFromLeaderboardBtn) backFromLeaderboardBtn.textContent = t("menu_back");
+  if (playFromLeaderboardBtn) playFromLeaderboardBtn.textContent = t("menu_start");
+
+  if (settingsTitleEl) settingsTitleEl.textContent = t("menu_settings");
+  if (difficultyTitleEl) difficultyTitleEl.textContent = t("difficulty_title");
+  if (difficultyHintEl) difficultyHintEl.textContent = t("difficulty_hint");
+  if (settingsCreditEl) settingsCreditEl.textContent = t("settings_credit");
+
+  if (homeHintEl) homeHintEl.innerHTML = t("controls_hint").split("\n").join("<br />");
+  if (leaderboardTitleEl) leaderboardTitleEl.textContent = t("leaderboard_title");
+  if (leaderboardHeadingEl) leaderboardHeadingEl.textContent = t("leaderboard_title");
+  if (nameEntryLabel) nameEntryLabel.textContent = t("name_entry_label");
+  if (saveScoreBtn) saveScoreBtn.textContent = t("save_score");
+  if (playerNameInput) playerNameInput.placeholder = t("brand_player");
+
+  if (quizTitleEl) quizTitleEl.textContent = t("quiz_title");
+  difficultyButtons.forEach((btn) => {
+    if (btn.dataset.difficulty === "easy") btn.textContent = t("difficulty_easy");
+    else if (btn.dataset.difficulty === "expert") btn.textContent = t("difficulty_expert");
+    else btn.textContent = t("difficulty_normal");
+  });
+
+  localizeBonusTypeNames();
+}
+
 function renderDifficultyButtons() {
   const mode = DIFFICULTY_MODES[state.difficulty] ? state.difficulty : "normal";
   state.difficulty = mode;
   difficultyButtons.forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.difficulty === mode);
   });
-  if (modeLabelEl) modeLabelEl.textContent = DIFFICULTY_MODES[mode].label;
+  if (modeLabelEl) modeLabelEl.textContent = difficultyLabel(mode);
 }
 
 function setDifficulty(mode, persist = true) {
@@ -692,7 +797,7 @@ function normalizeLeaderboardRows(rows) {
     if (!row || typeof row !== "object") continue;
     const score = Number(row.score) || 0;
     const level = Math.max(1, Number(row.level) || 1);
-    const name = `${row.name || "PLAYER"}`.slice(0, 16);
+    const name = `${row.name || t("brand_player")}`.slice(0, 16);
     if (score <= 0) continue;
     safeRows.push({ name, score, level, date: Number(row.date) || Date.now() });
   }
@@ -721,7 +826,7 @@ function isLeaderboardScore(score) {
 
 function addLeaderboardEntry(name, score, level) {
   if (score <= 0) return;
-  const finalName = `${name || "PLAYER"}`.trim().slice(0, 16) || "PLAYER";
+  const finalName = `${name || t("brand_player")}`.trim().slice(0, 16) || t("brand_player");
   state.leaderboard.push({
     name: finalName,
     score: Math.floor(score),
@@ -736,12 +841,16 @@ function renderLeaderboard() {
   leaderboardList.innerHTML = "";
   if (state.leaderboard.length === 0) {
     const li = document.createElement("li");
-    li.textContent = "Aucun score pour le moment.";
+    li.textContent = t("leaderboard_empty");
     leaderboardList.appendChild(li);
   } else {
     state.leaderboard.forEach((row) => {
       const li = document.createElement("li");
-      li.textContent = `${row.name} — ${row.score} pts (Niv. ${row.level})`;
+      li.textContent = t("leaderboard_row", {
+        name: row.name,
+        score: row.score,
+        level: row.level,
+      });
       leaderboardList.appendChild(li);
     });
   }
@@ -904,8 +1013,8 @@ function refreshHud() {
   livesEl.textContent = `${state.lives}`;
   levelEl.textContent = `${state.level}`;
   remainingEl.textContent = `${state.remaining}`;
-  if (modeLabelEl) modeLabelEl.textContent = DIFFICULTY_MODES[state.difficulty].label;
-  if (pauseBtn) pauseBtn.textContent = state.paused ? "Reprendre" : "Pause";
+  if (modeLabelEl) modeLabelEl.textContent = difficultyLabel(state.difficulty);
+  if (pauseBtn) pauseBtn.textContent = state.paused ? t("resume") : t("pause");
 }
 
 function showNotice(text, duration = 2.1) {
@@ -1035,9 +1144,9 @@ function resetLevel(level, keepStats = true) {
   if (!keepStats) {
     state.score = 0;
     state.lives = 3;
-    state.combo = 0;
     state.patternOrderIndices = [];
   }
+  state.combo = 0;
   state.paused = false;
   state.countdownActive = false;
   state.roundCountdown = 0;
@@ -1063,7 +1172,7 @@ function resetLevel(level, keepStats = true) {
   hideQuiz();
   setNameEntryVisible(false);
   resetBalls(true);
-  showNotice(`Motif ${state.patternName}`);
+  showNotice(t("notice_pattern", { name: localizePatternName(state.patternName) }));
   state.countdownActive = true;
   state.roundCountdown = 3;
   fitCanvasToViewport();
@@ -1071,6 +1180,7 @@ function resetLevel(level, keepStats = true) {
 }
 
 function showMainOverlay(title, text, buttonLabel, onClick) {
+  showMenuView("home");
   overlayTitle.textContent = title;
   overlayText.textContent = text;
   startBtn.textContent = buttonLabel;
@@ -1086,17 +1196,25 @@ function hideMainOverlay() {
   screenOverlay.classList.add("hidden");
 }
 
+function showMenuView(view) {
+  if (!menuHomeView || !menuSettingsView || !menuLeaderboardView) return;
+  menuHomeView.classList.toggle("hidden", view !== "home");
+  menuSettingsView.classList.toggle("hidden", view !== "settings");
+  menuLeaderboardView.classList.toggle("hidden", view !== "leaderboard");
+}
+
 function showQuiz(question) {
   state.keys.left = false;
   state.keys.right = false;
   quizPrompt.textContent = question.prompt;
-  quizFeedback.textContent = "Choix clavier: 1 2 3, ou fleches + Entree.";
+  quizFeedback.textContent = t("quiz_keyboard_hint");
   quizFeedback.className = "feedback";
   quizChoices.innerHTML = "";
   const limit = DIFFICULTY_MODES[state.difficulty].quizTime;
   state.quizTimeLeft = limit == null ? Infinity : limit;
   state.quizSelectedIndex = -1;
-  quizTimerEl.textContent = limit == null ? "Temps: illimité" : `${limit.toFixed(1)}s`;
+  quizTimerEl.textContent =
+    limit == null ? t("quiz_time_unlimited") : t("quiz_time_left", { seconds: limit.toFixed(1) });
 
   question.choices.forEach((choice) => {
     const btn = document.createElement("button");
@@ -1114,6 +1232,26 @@ function showQuiz(question) {
 function hideQuiz() {
   quizOverlay.classList.remove("visible");
   quizOverlay.classList.add("hidden");
+}
+
+function escapeHtml(text) {
+  return `${text}`
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function revealPromptAnswer(prompt, answer, isCorrect) {
+  const safePrompt = escapeHtml(prompt || "");
+  const safeAnswer = escapeHtml(`${answer || ""}`.toUpperCase());
+  const cls = isCorrect ? "prompt-answer correct" : "prompt-answer wrong";
+  if (safePrompt.includes("____")) {
+    quizPrompt.innerHTML = safePrompt.replace("____", `<span class="${cls}">${safeAnswer}</span>`);
+    return;
+  }
+  quizPrompt.innerHTML = `${safePrompt} <span class="${cls}">${safeAnswer}</span>`;
 }
 
 function wrapIndex(index, length) {
@@ -1218,7 +1356,7 @@ function applyBonus(typeId) {
     state.effects.paddleTimer += 10;
     paddle.width = clamp(paddle.width + 34, state.basePaddleWidth, 240);
     paddle.x = clamp(paddle.x, 8, WORLD_WIDTH - paddle.width - 8);
-    showNotice("Bonus actif: Raquette XL (10s)", 2.6);
+    showNotice(t("notice_bonus_long_paddle"), 2.6);
   } else if (typeId === "multiball") {
     if (state.balls.length > 0 && state.balls.length < 4) {
       const source = randomItem(state.balls);
@@ -1227,11 +1365,11 @@ function applyBonus(typeId) {
       state.balls.push(createBall(source.x, source.y, speed * Math.cos(angle), speed * Math.sin(angle)));
       state.ballLocked = false;
     }
-    showNotice("Bonus actif: Double Balle", 2.4);
+    showNotice(t("notice_bonus_multiball"), 2.4);
   } else if (typeId === "extra_life") {
     const livesGain = Math.max(1, Number(bonusDef?.lives) || 1);
     state.lives += livesGain;
-    showNotice(`Bonus actif: +${livesGain} vies`, 2.4);
+    showNotice(t("notice_bonus_lives", { count: livesGain }), 2.4);
   } else if (typeId === "slow_ball") {
     for (let i = 0; i < state.balls.length; i += 1) {
       const ball = state.balls[i];
@@ -1244,7 +1382,7 @@ function applyBonus(typeId) {
         ball.vy *= factor;
       }
     }
-    showNotice("Bonus actif: Balle Lente", 2.4);
+    showNotice(t("notice_bonus_slow_ball"), 2.4);
   }
   refreshHud();
 }
@@ -1253,17 +1391,18 @@ function activateSuperCannons() {
   state.effects.superCannonTimer = Math.max(state.effects.superCannonTimer, SUPER_CANNON_DURATION);
   state.effects.cannonShotTimer = 0;
   state.score += 320;
-  showNotice("SUPER BONUS: canons de feu actives", 2.6);
+  showNotice(t("notice_super_bonus"), 2.6);
   refreshHud();
 }
 
 function queueSuperChallenge(trigger) {
+  if (state.effects.superCannonTimer > 0) return false;
   if (state.pendingSuperChallenges > 0 || state.superChallenge) return false;
   state.pendingSuperChallenges = 1;
   if (trigger === "golden") {
-    showNotice("Brique doree: super defi x3", 2.2);
+    showNotice(t("notice_super_trigger_golden"), 2.2);
   } else {
-    showNotice("Combo 10+: super defi x3", 2.2);
+    showNotice(t("notice_super_trigger_combo", { combo: COMBO_SUPER_THRESHOLD }), 2.2);
   }
   startNextQuestion();
   return true;
@@ -1286,8 +1425,9 @@ function startNextBonusQuestion() {
   state.pendingQuestion = {
     kind: "bonus",
     bonusType: bonus.typeId,
-    bonusName: bonus.name,
+    bonusName: bonusName(bonus.typeId, bonus.name),
     correct: question.correct,
+    prompt: question.prompt,
     resolved: false,
   };
   state.awaitingAnswer = true;
@@ -1296,6 +1436,7 @@ function startNextBonusQuestion() {
 }
 
 function startNextQuestion() {
+  if (state.effects.superCannonTimer > 0) return;
   if (state.awaitingAnswer) return;
   if (!state.superChallenge && state.pendingSuperChallenges > 0) {
     beginSuperChallenge();
@@ -1310,6 +1451,7 @@ function startNextQuestion() {
       state.pendingQuestion = {
         kind: "super",
         correct: question.correct,
+        prompt: question.prompt,
         step,
         total: SUPER_CHALLENGE_QUESTIONS,
         resolved: false,
@@ -1328,7 +1470,7 @@ function resolveAnswer(choice, reason = "answer") {
   if (state.pendingQuestion.resolved) return;
   state.pendingQuestion.resolved = true;
 
-  const { kind, bonusType, bonusName, correct } = state.pendingQuestion;
+  const { kind, bonusType, bonusName, correct, prompt } = state.pendingQuestion;
   const isCorrect = choice === correct;
   const buttons = quizChoices.querySelectorAll("button");
   buttons.forEach((btn) => {
@@ -1336,36 +1478,43 @@ function resolveAnswer(choice, reason = "answer") {
     btn.classList.remove("selected");
   });
   state.quizTimeLeft = 0;
-  quizTimerEl.textContent =
-    DIFFICULTY_MODES[state.difficulty].quizTime == null ? "Temps: illimité" : "0.0s";
+  quizTimerEl.textContent = DIFFICULTY_MODES[state.difficulty].quizTime == null
+    ? t("quiz_time_unlimited")
+    : t("quiz_time_left", { seconds: "0.0" });
   let closeDelayMs = 620;
 
   if (kind === "bonus") {
     if (isCorrect) {
+      revealPromptAnswer(prompt, correct, true);
       applyBonus(bonusType);
-      quizFeedback.textContent = `Correct. Bonus gagne: ${bonusName}.`;
+      quizFeedback.textContent = t("quiz_feedback_bonus_ok", { name: bonusName });
       quizFeedback.className = "feedback ok";
     } else if (reason === "timeout") {
       quizFeedback.textContent = "";
       quizFeedback.className = "feedback";
       closeDelayMs = 120;
     } else {
-      quizFeedback.textContent = `Rate. Bonne reponse: ${correct}.`;
+      revealPromptAnswer(prompt, correct, false);
+      quizFeedback.textContent = t("quiz_feedback_wrong", { answer: correct });
       quizFeedback.className = "feedback bad";
       closeDelayMs = 3000;
     }
   } else if (kind === "super") {
     if (isCorrect && state.superChallenge) {
+      revealPromptAnswer(prompt, correct, true);
       state.superChallenge.solved += 1;
       state.superChallenge.remaining -= 1;
       if (state.superChallenge.remaining <= 0) {
         state.superChallenge = null;
         activateSuperCannons();
-        quizFeedback.textContent = "Defi valide: canons de feu debloques.";
+        quizFeedback.textContent = t("quiz_feedback_super_done");
         quizFeedback.className = "feedback ok";
         closeDelayMs = 900;
       } else {
-        quizFeedback.textContent = `Correct (${state.superChallenge.solved}/${SUPER_CHALLENGE_QUESTIONS}).`;
+        quizFeedback.textContent = t("quiz_feedback_super_step", {
+          solved: state.superChallenge.solved,
+          total: SUPER_CHALLENGE_QUESTIONS,
+        });
         quizFeedback.className = "feedback ok";
         closeDelayMs = 500;
       }
@@ -1376,7 +1525,8 @@ function resolveAnswer(choice, reason = "answer") {
       closeDelayMs = 120;
     } else {
       state.superChallenge = null;
-      quizFeedback.textContent = `Rate. Bonne reponse: ${correct}.`;
+      revealPromptAnswer(prompt, correct, false);
+      quizFeedback.textContent = t("quiz_feedback_wrong", { answer: correct });
       quizFeedback.className = "feedback bad";
       closeDelayMs = 3000;
     }
@@ -1410,9 +1560,13 @@ function spawnBurst(x, y, color) {
 function maybeDropBonus(brick) {
   if (!brick.hasBonus || !brick.bonusType || !brick.verb) return;
   const type = brick.bonusType;
+  if (state.effects.superCannonTimer > 0) {
+    applyBonus(type.id);
+    return;
+  }
   state.bonusQueue.push({
     typeId: type.id,
-    name: type.name,
+    name: bonusName(type.id, type.name),
     icon: type.icon,
     color: type.color,
     verb: brick.verb,
@@ -1439,10 +1593,10 @@ function destroyBrick(brick, axis, ball, options = {}) {
   }
   spawnBurst(brick.x + brick.w * 0.5, brick.y + brick.h * 0.5, brick.isGolden ? "#ffd56a" : "#6bf8a2");
   maybeDropBonus(brick);
-  if (brick.isGolden) {
+  if (brick.isGolden && state.effects.superCannonTimer <= 0) {
     queueSuperChallenge("golden");
   }
-  if (!state.comboChallengeTriggered && state.combo >= COMBO_SUPER_THRESHOLD) {
+  if (!state.comboChallengeTriggered && state.combo >= COMBO_SUPER_THRESHOLD && state.effects.superCannonTimer <= 0) {
     state.comboChallengeTriggered = true;
     queueSuperChallenge("combo");
   }
@@ -1456,7 +1610,7 @@ function persistPendingLeaderboardScore() {
   if (!state.pendingLeaderboardScore) return;
   const fallbackName = playerNameInput ? playerNameInput.value.trim() : "";
   addLeaderboardEntry(
-    fallbackName || "PLAYER",
+    fallbackName || t("brand_player"),
     state.pendingLeaderboardScore.score,
     state.pendingLeaderboardScore.level,
   );
@@ -1479,14 +1633,15 @@ function handleGameOver() {
   state.paused = false;
   const qualifies = isLeaderboardScore(state.score);
   const gameOverText = qualifies
-    ? "Top score potentiel. Entre ton pseudo et enregistre ton score."
-    : "Tu as perdu toutes tes vies. Relance une partie pour battre ton score.";
-  showMainOverlay("Partie terminee", gameOverText, "Rejouer", () => {
+    ? t("game_over_text_qualifies")
+    : t("game_over_text_regular");
+  showMainOverlay(t("game_over_title"), gameOverText, t("game_over_replay"), () => {
     startNewGame();
   });
   if (qualifies) {
     state.pendingLeaderboardScore = { score: state.score, level: state.level };
     setNameEntryVisible(true);
+    showMenuView("leaderboard");
   } else {
     state.pendingLeaderboardScore = null;
   }
@@ -1511,7 +1666,7 @@ function loseLife() {
     handleGameOver();
   } else {
     resetBalls(true);
-    showNotice("Vie perdue", 1.8);
+    showNotice(t("notice_life_lost"), 1.8);
     startRoundCountdown(3);
   }
   refreshHud();
@@ -1519,11 +1674,11 @@ function loseLife() {
 
 function nextLevel() {
   state.running = false;
-  const nextPattern = getPatternForLevel(state.level + 1).name;
+  const nextPattern = localizePatternName(getPatternForLevel(state.level + 1).name);
   showMainOverlay(
-    `Niveau ${state.level} termine`,
-    `Prochain motif: ${nextPattern}. Vitesse et challenge augmentent.`,
-    "Niveau suivant",
+    t("level_complete_title", { level: state.level }),
+    t("level_complete_text", { name: nextPattern }),
+    t("level_next"),
     () => {
       hideMainOverlay();
       resetLevel(state.level + 1, true);
@@ -1586,14 +1741,14 @@ function updateEffects(delta) {
     if (state.effects.paddleTimer <= 0) {
       paddle.width = state.basePaddleWidth;
       paddle.x = clamp(paddle.x, 8, WORLD_WIDTH - paddle.width - 8);
-      showNotice("Raquette XL terminee", 1.8);
+      showNotice(t("notice_paddle_end"), 1.8);
     }
   }
   const hadCannons = state.effects.superCannonTimer > 0;
   updateSuperCannons(delta);
   if (hadCannons && state.effects.superCannonTimer <= 0) {
     state.fireShots = [];
-    showNotice("Canons de feu termines", 1.8);
+    showNotice(t("notice_cannons_end"), 1.8);
   }
   if (state.noticeTimer > 0) {
     state.noticeTimer -= delta;
@@ -1679,11 +1834,11 @@ function updateQuizTimer(delta) {
   if (state.paused) return;
   const timeLimit = DIFFICULTY_MODES[state.difficulty].quizTime;
   if (timeLimit == null) {
-    quizTimerEl.textContent = "Temps: illimité";
+    quizTimerEl.textContent = t("quiz_time_unlimited");
     return;
   }
   state.quizTimeLeft = Math.max(0, state.quizTimeLeft - delta);
-  quizTimerEl.textContent = `${state.quizTimeLeft.toFixed(1)}s`;
+  quizTimerEl.textContent = t("quiz_time_left", { seconds: state.quizTimeLeft.toFixed(1) });
   if (state.quizTimeLeft <= 0) {
     resolveAnswer(null, "timeout");
   }
@@ -1866,9 +2021,9 @@ function drawBricks() {
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillStyle = "rgba(73,44,0,0.82)";
-      ctx.fillText("GOLD", brick.x + brick.w * 0.5 + 0.7, brick.y + brick.h * 0.5 + 0.7);
+      ctx.fillText(t("gold_label"), brick.x + brick.w * 0.5 + 0.7, brick.y + brick.h * 0.5 + 0.7);
       ctx.fillStyle = "#fff7c8";
-      ctx.fillText("GOLD", brick.x + brick.w * 0.5, brick.y + brick.h * 0.5);
+      ctx.fillText(t("gold_label"), brick.x + brick.w * 0.5, brick.y + brick.h * 0.5);
 
       ctx.textBaseline = "alphabetic";
       ctx.font = `${brick.h < 23 ? 700 : 800} ${brick.h < 23 ? 10 : 12}px Nunito, Trebuchet MS, sans-serif`;
@@ -2002,11 +2157,11 @@ function drawParticles() {
 function drawNotice() {
   let text = "";
   if (state.running && state.paused) {
-    text = "Pause";
+    text = t("notice_pause");
   } else if (state.running && state.countdownActive) {
     text = `${Math.ceil(state.roundCountdown)}`;
   } else if (state.running && state.ballLocked) {
-    text = "Appuie sur Espace pour lancer la balle";
+    text = t("notice_press_space");
   } else if (state.noticeTimer > 0) {
     text = state.notice;
   }
@@ -2029,7 +2184,7 @@ function drawNotice() {
 
 function drawPatternTag() {
   if (!state.patternName || !state.running) return;
-  const label = `Motif: ${state.patternName}`;
+  const label = t("pattern_prefix", { name: localizePatternName(state.patternName) });
   ctx.font = "800 13px Nunito, Trebuchet MS, sans-serif";
   const tagWidth = clamp(ctx.measureText(label).width + 20, 170, WORLD_WIDTH * 0.64);
   ctx.fillStyle = "rgba(0,0,0,0.28)";
@@ -2049,12 +2204,12 @@ function drawCombo() {
   ctx.font = "800 19px Nunito, Trebuchet MS, sans-serif";
   ctx.textAlign = "right";
   ctx.textBaseline = "top";
-  ctx.fillText(`Combo x${state.combo}`, WORLD_WIDTH - 16, 12);
+  ctx.fillText(t("combo_label", { combo: state.combo }), WORLD_WIDTH - 16, 12);
 }
 
 function drawSuperBonusStatus() {
   if (!state.running || state.effects.superCannonTimer <= 0) return;
-  const text = `CANONS ${state.effects.superCannonTimer.toFixed(1)}s`;
+  const text = t("super_status", { seconds: state.effects.superCannonTimer.toFixed(1) });
   ctx.font = "800 14px Nunito, Trebuchet MS, sans-serif";
   const boxW = ctx.measureText(text).width + 18;
   const x = WORLD_WIDTH - boxW - 10;
@@ -2121,11 +2276,11 @@ function setPaused(nextPaused, automatic = false) {
   state.paused = nextPaused;
 
   if (state.paused) {
-    if (!automatic) showNotice("Pause", 1.2);
+    if (!automatic) showNotice(t("notice_pause"), 1.2);
   } else {
     state.countdownActive = true;
     state.roundCountdown = 3;
-    showNotice("Reprise", 0.8);
+    showNotice(t("notice_resume"), 0.8);
   }
   refreshHud();
 }
@@ -2253,6 +2408,37 @@ if (pauseBtn) {
   });
 }
 
+if (openSettingsBtn) {
+  openSettingsBtn.addEventListener("click", () => {
+    showMenuView("settings");
+  });
+}
+
+if (openLeaderboardBtn) {
+  openLeaderboardBtn.addEventListener("click", () => {
+    renderLeaderboard();
+    showMenuView("leaderboard");
+  });
+}
+
+if (backFromSettingsBtn) {
+  backFromSettingsBtn.addEventListener("click", () => {
+    showMenuView("home");
+  });
+}
+
+if (backFromLeaderboardBtn) {
+  backFromLeaderboardBtn.addEventListener("click", () => {
+    showMenuView("home");
+  });
+}
+
+if (playFromLeaderboardBtn) {
+  playFromLeaderboardBtn.addEventListener("click", () => {
+    startNewGame();
+  });
+}
+
 if (saveScoreBtn) {
   saveScoreBtn.addEventListener("click", () => {
     persistPendingLeaderboardScore();
@@ -2298,17 +2484,18 @@ document.addEventListener("visibilitychange", () => {
   autoPauseOnFocusLoss();
 });
 
+applyStaticTranslations();
+loadSettings();
+loadLeaderboard();
 showMainOverlay(
-  "BreakVerb",
-  "Mode casse-brique classique: questions sur bonus. Passe combo 10+ ou casse la GOLD brick pour lancer un super defi x3.",
-  "Lancer la partie",
+  t("game_title"),
+  t("menu_intro", { combo: COMBO_SUPER_THRESHOLD }),
+  t("menu_start"),
   () => {
     startNewGame();
   },
 );
 
-loadSettings();
-loadLeaderboard();
 refreshResponsiveLayout(false);
 refreshHud();
 requestAnimationFrame(loop);

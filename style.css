@@ -337,6 +337,21 @@ canvas {
   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45);
 }
 
+.prompt-answer {
+  font: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+}
+
+.prompt-answer.wrong {
+  color: #ff5b6a;
+}
+
+.prompt-answer.correct {
+  color: #88ff9e;
+}
+
 .quiz-timer {
   margin: 0 0 10px;
   font-size: 1rem;
