@@ -95,11 +95,9 @@ h1 {
 }
 
 .touch-actions {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: max(6px, env(safe-area-inset-bottom));
-  z-index: 3;
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 max(8px, env(safe-area-inset-bottom));
   pointer-events: auto;
 }
 
@@ -116,7 +114,6 @@ h1 {
   height: auto;
   display: grid;
   place-items: center;
-  padding-bottom: max(12px, env(safe-area-inset-bottom));
   background: rgba(10, 18, 42, 0.46);
 }
 
