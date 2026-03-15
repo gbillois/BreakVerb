@@ -94,9 +94,23 @@ h1 {
   font-size: 0.95rem;
 }
 
+.end-btn {
+  min-width: 80px;
+  min-height: 44px;
+  padding: 10px 16px;
+  font-size: 0.95rem;
+  background: #c0392b;
+  border-color: #922b21;
+}
+
+.end-btn:hover {
+  background: #e74c3c;
+}
+
 .touch-actions {
   display: flex;
   justify-content: center;
+  gap: 12px;
   padding: 8px 0 max(8px, env(safe-area-inset-bottom));
   pointer-events: auto;
 }
@@ -561,6 +575,12 @@ canvas {
 
   .pause-btn {
     min-width: 168px;
+    min-height: 48px;
+    font-size: 1rem;
+  }
+
+  .end-btn {
+    min-width: 90px;
     min-height: 48px;
     font-size: 1rem;
   }

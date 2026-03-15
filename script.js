@@ -8,6 +8,7 @@ const levelEl = document.getElementById("level");
 const remainingEl = document.getElementById("remaining");
 const modeLabelEl = document.getElementById("modeLabel");
 const pauseBtn = document.getElementById("pauseBtn");
+const endBtn = document.getElementById("endBtn");
 const labelScoreEl = document.getElementById("labelScore");
 const labelBestScoreEl = document.getElementById("labelBestScore");
 const labelLivesEl = document.getElementById("labelLives");
@@ -61,7 +62,7 @@ const LANDSCAPE_WORLD = { width: 960, height: 540 };
 const PORTRAIT_WORLD = { width: 600, height: 960 };
 let WORLD_WIDTH = LANDSCAPE_WORLD.width;
 let WORLD_HEIGHT = LANDSCAPE_WORLD.height;
-const BONUS_BRICK_RATIO = 0.15;
+const BONUS_BRICK_RATIO = 0.20;
 const COMBO_SUPER_THRESHOLD = 40;
 const SUPER_CHALLENGE_QUESTIONS = 3;
 const SUPER_CANNON_DURATION = 5;
@@ -2972,6 +2973,21 @@ canvas.addEventListener("pointercancel", () => {
 if (pauseBtn) {
   pauseBtn.addEventListener("click", () => {
     togglePause();
+  });
+}
+
+if (endBtn) {
+  endBtn.addEventListener("click", () => {
+    if (!state.running) return;
+    state.running = false;
+    state.paused = false;
+    hideQuiz();
+    showMainOverlay(
+      t("game_title"),
+      t("menu_intro", { combo: COMBO_SUPER_THRESHOLD }),
+      t("menu_start"),
+      () => startNewGame()
+    );
   });
 }
 
