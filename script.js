@@ -2087,12 +2087,14 @@ function destroyBrick(brick, axis, ball, options = {}) {
   }
   spawnBurst(brick.x + brick.w * 0.5, brick.y + brick.h * 0.5, brick.isGolden ? "#ffd56a" : "#6bf8a2");
   maybeDropBonus(brick);
-  if (brick.isGolden && state.effects.superCannonTimer <= 0) {
-    queueSuperChallenge("golden");
-  }
-  if (!state.comboChallengeTriggered && state.combo >= COMBO_SUPER_THRESHOLD && state.effects.superCannonTimer <= 0) {
-    state.comboChallengeTriggered = true;
-    queueSuperChallenge("combo");
+  if (!fromProjectile) {
+    if (brick.isGolden && state.effects.superCannonTimer <= 0) {
+      queueSuperChallenge("golden");
+    }
+    if (!state.comboChallengeTriggered && state.combo >= COMBO_SUPER_THRESHOLD && state.effects.superCannonTimer <= 0) {
+      state.comboChallengeTriggered = true;
+      queueSuperChallenge("combo");
+    }
   }
   if (state.pendingSuperChallenges > 0 && !state.awaitingAnswer) {
     startNextQuestion();
