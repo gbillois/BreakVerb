@@ -31,6 +31,11 @@ const PORTRAIT_WORLD = { width: 600, height: 960 };
 let WORLD_WIDTH = LANDSCAPE_WORLD.width;
 let WORLD_HEIGHT = LANDSCAPE_WORLD.height;
 const BONUS_BRICK_RATIO = 0.15;
+const COMBO_SUPER_THRESHOLD = 11;
+const SUPER_CHALLENGE_QUESTIONS = 3;
+const SUPER_CANNON_DURATION = 14;
+const SUPER_CANNON_SHOT_INTERVAL = 0.26;
+const SUPER_CANNON_SPEED = 640;
 const LEADERBOARD_KEY = "breakverb_leaderboard_v1";
 const SETTINGS_KEY = "breakverb_settings_v1";
 
@@ -379,6 +384,7 @@ const state = {
   lives: 3,
   level: 1,
   combo: 0,
+  comboChallengeTriggered: false,
   remaining: 0,
   patternName: "",
   basePaddleWidth: 148,
@@ -391,6 +397,9 @@ const state = {
   particles: [],
   fallingBonuses: [],
   bonusQueue: [],
+  pendingSuperChallenges: 0,
+  superChallenge: null,
+  fireShots: [],
   pendingQuestion: null,
   quizTimeLeft: 0,
   quizSelectedIndex: -1,
@@ -399,6 +408,8 @@ const state = {
   pendingLeaderboardScore: null,
   effects: {
     paddleTimer: 0,
+    superCannonTimer: 0,
+    cannonShotTimer: 0,
   },
   touchControlActive: false,
   touchPointerId: null,
@@ -640,6 +651,14 @@ function updateWorldBounds(portraitMode, preserveObjects = true) {
       state.particles[i].x *= scaleX;
       state.particles[i].y *= scaleY;
     }
+
+    for (let i = 0; i < state.fireShots.length; i += 1) {
+      const shot = state.fireShots[i];
+      shot.x *= scaleX;
+      shot.y *= scaleY;
+      shot.vx *= scaleX;
+      shot.vy *= scaleY;
+    }
   } else {
     paddle.y = WORLD_HEIGHT - 36;
     state.touchTargetX = WORLD_WIDTH * 0.5;
@@ -762,6 +781,12 @@ function createBricks(level) {
 
   const bonusCount = Math.max(1, Math.round(activeCount * BONUS_BRICK_RATIO));
   const bonusSlots = new Set(shuffleArray([...Array(activeCount).keys()]).slice(0, bonusCount));
+  const noBonusSlots = [];
+  for (let i = 0; i < activeCount; i += 1) {
+    if (!bonusSlots.has(i)) noBonusSlots.push(i);
+  }
+  const goldenSource = noBonusSlots.length > 0 ? noBonusSlots : [...Array(activeCount).keys()];
+  const goldenSlot = randomItem(goldenSource);
   const bonusVerbs = sampleVerbs(bonusCount);
   const usableWidth = WORLD_WIDTH - layout.sideMargin * 2 - layout.gap * (cols - 1);
   const brickWidth = usableWidth / cols;
@@ -782,12 +807,14 @@ function createBricks(level) {
       const y = layout.top + r * (brickHeight + layout.gap);
       const hasBonus = bonusSlots.has(activeIdx);
       const bonusType = hasBonus ? randomWeightedItem(BONUS_TYPES) : null;
+      const isGolden = activeIdx === goldenSlot;
       bricks.push({
         x,
         y,
         w: brickWidth,
         h: brickHeight,
         code,
+        isGolden,
         hasBonus,
         bonusType,
         verb: hasBonus ? bonusVerbs[verbIdx] : null,
@@ -812,6 +839,12 @@ function resetLevel(level, keepStats = true) {
   state.roundCountdown = 0;
   state.level = level;
   state.effects.paddleTimer = 0;
+  state.effects.superCannonTimer = 0;
+  state.effects.cannonShotTimer = 0;
+  state.pendingSuperChallenges = 0;
+  state.superChallenge = null;
+  state.fireShots = [];
+  state.comboChallengeTriggered = false;
   const maxBase = clamp(WORLD_WIDTH * 0.25, 130, 190);
   state.basePaddleWidth = clamp(maxBase - (level - 1) * 3, 106, maxBase);
   paddle.width = state.basePaddleWidth;
@@ -946,8 +979,7 @@ function buildPromptPattern(verb, targetKey) {
   return `${slots[0]} / ${slots[1]} / ${slots[2]}`;
 }
 
-function createBonusQuestion(bonus) {
-  const target = bonus.verb || randomItem(IRREGULAR_VERBS);
+function createVerbQuestion(target = randomItem(IRREGULAR_VERBS)) {
   const targetKey = randomItem(["past", "pp", "past", "pp", "base"]);
   const correct = target[targetKey];
   const wrongOther = getOtherWrongForm(target, targetKey, correct);
@@ -969,6 +1001,11 @@ function createBonusQuestion(bonus) {
     choices,
     prompt: buildPromptPattern(target, targetKey),
   };
+}
+
+function createBonusQuestion(bonus) {
+  const target = bonus.verb || randomItem(IRREGULAR_VERBS);
+  return createVerbQuestion(target);
 }
 
 function applyBonus(typeId) {
@@ -1008,8 +1045,36 @@ function applyBonus(typeId) {
   refreshHud();
 }
 
+function activateSuperCannons() {
+  state.effects.superCannonTimer = Math.max(state.effects.superCannonTimer, SUPER_CANNON_DURATION);
+  state.effects.cannonShotTimer = 0;
+  state.score += 320;
+  showNotice("SUPER BONUS: canons de feu actives", 2.6);
+  refreshHud();
+}
+
+function queueSuperChallenge(trigger) {
+  if (state.pendingSuperChallenges > 0 || state.superChallenge) return;
+  state.pendingSuperChallenges = 1;
+  if (trigger === "golden") {
+    showNotice("Brique doree: super defi x3", 2.2);
+  } else {
+    showNotice("Combo 10+: super defi x3", 2.2);
+  }
+}
+
+function beginSuperChallenge() {
+  if (state.pendingSuperChallenges <= 0 || state.awaitingAnswer) return false;
+  state.pendingSuperChallenges -= 1;
+  state.superChallenge = {
+    remaining: SUPER_CHALLENGE_QUESTIONS,
+    solved: 0,
+  };
+  return true;
+}
+
 function startNextBonusQuestion() {
-  if (state.awaitingAnswer || state.bonusQueue.length === 0) return;
+  if (state.awaitingAnswer || state.bonusQueue.length === 0 || state.superChallenge) return false;
   const bonus = state.bonusQueue.shift();
   const question = createBonusQuestion(bonus);
   state.pendingQuestion = {
@@ -1021,6 +1086,38 @@ function startNextBonusQuestion() {
   };
   state.awaitingAnswer = true;
   showQuiz(question);
+  return true;
+}
+
+function startNextQuestion() {
+  if (state.awaitingAnswer) return;
+  if (!state.superChallenge && state.pendingSuperChallenges > 0) {
+    beginSuperChallenge();
+  }
+
+  if (state.superChallenge) {
+    if (state.superChallenge.remaining <= 0) {
+      state.superChallenge = null;
+    } else {
+      const question = createVerbQuestion();
+      const step = SUPER_CHALLENGE_QUESTIONS - state.superChallenge.remaining + 1;
+      state.pendingQuestion = {
+        kind: "super",
+        correct: question.correct,
+        step,
+        total: SUPER_CHALLENGE_QUESTIONS,
+        resolved: false,
+      };
+      state.awaitingAnswer = true;
+      showQuiz({
+        ...question,
+        prompt: `[Defi ${step}/${SUPER_CHALLENGE_QUESTIONS}] ${question.prompt}`,
+      });
+      return;
+    }
+  }
+
+  startNextBonusQuestion();
 }
 
 function resolveAnswer(choice, reason = "answer") {
@@ -1028,7 +1125,7 @@ function resolveAnswer(choice, reason = "answer") {
   if (state.pendingQuestion.resolved) return;
   state.pendingQuestion.resolved = true;
 
-  const { bonusType, bonusName, correct } = state.pendingQuestion;
+  const { kind, bonusType, bonusName, correct } = state.pendingQuestion;
   const isCorrect = choice === correct;
   const buttons = quizChoices.querySelectorAll("button");
   buttons.forEach((btn) => {
@@ -1040,25 +1137,53 @@ function resolveAnswer(choice, reason = "answer") {
     DIFFICULTY_MODES[state.difficulty].quizTime == null ? "Temps: illimité" : "0.0s";
   let closeDelayMs = 620;
 
-  if (isCorrect) {
-    applyBonus(bonusType);
-    quizFeedback.textContent = `Correct. Bonus gagne: ${bonusName}.`;
-    quizFeedback.className = "feedback ok";
-  } else if (reason === "timeout") {
-    quizFeedback.textContent = "";
-    quizFeedback.className = "feedback";
-    closeDelayMs = 120;
-  } else {
-    quizFeedback.textContent = `Rate. Bonne reponse: ${correct}.`;
-    quizFeedback.className = "feedback bad";
-    closeDelayMs = 3000;
+  if (kind === "bonus") {
+    if (isCorrect) {
+      applyBonus(bonusType);
+      quizFeedback.textContent = `Correct. Bonus gagne: ${bonusName}.`;
+      quizFeedback.className = "feedback ok";
+    } else if (reason === "timeout") {
+      quizFeedback.textContent = "";
+      quizFeedback.className = "feedback";
+      closeDelayMs = 120;
+    } else {
+      quizFeedback.textContent = `Rate. Bonne reponse: ${correct}.`;
+      quizFeedback.className = "feedback bad";
+      closeDelayMs = 3000;
+    }
+  } else if (kind === "super") {
+    if (isCorrect && state.superChallenge) {
+      state.superChallenge.solved += 1;
+      state.superChallenge.remaining -= 1;
+      if (state.superChallenge.remaining <= 0) {
+        state.superChallenge = null;
+        activateSuperCannons();
+        quizFeedback.textContent = "Defi valide: canons de feu debloques.";
+        quizFeedback.className = "feedback ok";
+        closeDelayMs = 900;
+      } else {
+        quizFeedback.textContent = `Correct (${state.superChallenge.solved}/${SUPER_CHALLENGE_QUESTIONS}).`;
+        quizFeedback.className = "feedback ok";
+        closeDelayMs = 500;
+      }
+    } else if (reason === "timeout") {
+      state.superChallenge = null;
+      quizFeedback.textContent = "";
+      quizFeedback.className = "feedback";
+      closeDelayMs = 120;
+    } else {
+      state.superChallenge = null;
+      quizFeedback.textContent = `Rate. Bonne reponse: ${correct}.`;
+      quizFeedback.className = "feedback bad";
+      closeDelayMs = 3000;
+    }
   }
 
   setTimeout(() => {
     hideQuiz();
     state.pendingQuestion = null;
     state.awaitingAnswer = false;
-    startNextBonusQuestion();
+    startNextQuestion();
   }, closeDelayMs);
 }
 
@@ -1097,21 +1222,32 @@ function maybeDropBonus(brick) {
   });
 }
 
-function destroyBrick(brick, axis, ball) {
+function destroyBrick(brick, axis, ball, options = {}) {
   if (!brick.active) return;
+  const fromProjectile = options.fromProjectile === true;
   brick.active = false;
   brick.glow = 1;
   state.remaining -= 1;
-  state.score += 70 + state.combo * 8;
+  const basePoints = brick.isGolden ? 220 : 70;
+  state.score += basePoints + state.combo * 8;
   state.combo += 1;
-  if (axis === "x") {
-    ball.vx *= -1;
-  } else {
-    ball.vy *= -1;
+  if (!fromProjectile && ball) {
+    if (axis === "x") {
+      ball.vx *= -1;
+    } else {
+      ball.vy *= -1;
+    }
+    stabilizeBall(ball);
   }
-  stabilizeBall(ball);
-  spawnBurst(brick.x + brick.w * 0.5, brick.y + brick.h * 0.5, "#6bf8a2");
+  spawnBurst(brick.x + brick.w * 0.5, brick.y + brick.h * 0.5, brick.isGolden ? "#ffd56a" : "#6bf8a2");
   maybeDropBonus(brick);
+  if (brick.isGolden) {
+    queueSuperChallenge("golden");
+  }
+  if (!state.comboChallengeTriggered && state.combo >= COMBO_SUPER_THRESHOLD) {
+    state.comboChallengeTriggered = true;
+    queueSuperChallenge("combo");
+  }
   refreshHud();
 }
 
@@ -1158,8 +1294,14 @@ function handleGameOver() {
 function loseLife() {
   state.lives -= 1;
   state.combo = 0;
+  state.comboChallengeTriggered = false;
   state.fallingBonuses = [];
   state.bonusQueue = [];
+  state.pendingSuperChallenges = 0;
+  state.superChallenge = null;
+  state.fireShots = [];
+  state.effects.superCannonTimer = 0;
+  state.effects.cannonShotTimer = 0;
   state.pendingQuestion = null;
   state.awaitingAnswer = false;
   hideQuiz();
@@ -1246,6 +1388,12 @@ function updateEffects(delta) {
       showNotice("Raquette XL terminee", 1.8);
     }
   }
+  const hadCannons = state.effects.superCannonTimer > 0;
+  updateSuperCannons(delta);
+  if (hadCannons && state.effects.superCannonTimer <= 0) {
+    state.fireShots = [];
+    showNotice("Canons de feu termines", 1.8);
+  }
   if (state.noticeTimer > 0) {
     state.noticeTimer -= delta;
     if (state.noticeTimer <= 0) state.notice = "";
@@ -1262,7 +1410,67 @@ function updateBonuses(delta) {
       state.fallingBonuses.splice(i, 1);
     }
   }
-  startNextBonusQuestion();
+  startNextQuestion();
+}
+
+function spawnCannonVolley() {
+  if (state.fireShots.length > 40) return;
+  const sideInset = Math.min(18, paddle.width * 0.18);
+  const y = paddle.y - 10;
+  const leftX = paddle.x + sideInset;
+  const rightX = paddle.x + paddle.width - sideInset;
+  state.fireShots.push(
+    { x: leftX, y, vx: -30, vy: -SUPER_CANNON_SPEED, r: 5, life: 1.8 },
+    { x: rightX, y, vx: 30, vy: -SUPER_CANNON_SPEED, r: 5, life: 1.8 },
+  );
+}
+
+function updateSuperCannons(delta) {
+  if (state.effects.superCannonTimer <= 0) return;
+  if (!state.running || state.paused || state.awaitingAnswer || state.countdownActive || state.ballLocked) return;
+  state.effects.superCannonTimer = Math.max(0, state.effects.superCannonTimer - delta);
+  state.effects.cannonShotTimer -= delta;
+  while (state.effects.cannonShotTimer <= 0 && state.effects.superCannonTimer > 0) {
+    spawnCannonVolley();
+    state.effects.cannonShotTimer += SUPER_CANNON_SHOT_INTERVAL;
+  }
+}
+
+function projectileHitsBrick(shot, brick) {
+  const closestX = clamp(shot.x, brick.x, brick.x + brick.w);
+  const closestY = clamp(shot.y, brick.y, brick.y + brick.h);
+  const dx = shot.x - closestX;
+  const dy = shot.y - closestY;
+  return dx * dx + dy * dy <= shot.r * shot.r;
+}
+
+function updateFireShots(delta) {
+  if (state.fireShots.length === 0) return;
+  if (state.paused || state.awaitingAnswer || state.countdownActive) return;
+
+  for (let i = state.fireShots.length - 1; i >= 0; i -= 1) {
+    const shot = state.fireShots[i];
+    shot.x += shot.vx * delta;
+    shot.y += shot.vy * delta;
+    shot.life -= delta;
+    if (shot.life <= 0 || shot.y + shot.r < 0 || shot.x + shot.r < 0 || shot.x - shot.r > WORLD_WIDTH) {
+      state.fireShots.splice(i, 1);
+      continue;
+    }
+
+    let hit = false;
+    for (let b = 0; b < state.bricks.length; b += 1) {
+      const brick = state.bricks[b];
+      if (!brick.active) continue;
+      if (!projectileHitsBrick(shot, brick)) continue;
+      destroyBrick(brick, null, null, { fromProjectile: true });
+      hit = true;
+      break;
+    }
+    if (hit) {
+      state.fireShots.splice(i, 1);
+    }
+  }
 }
 
 function updateQuizTimer(delta) {
@@ -1374,6 +1582,7 @@ function update(delta) {
     updateRoundCountdown(delta);
     if (!state.countdownActive) {
       updateBalls(delta);
+      updateFireShots(delta);
       updateBonuses(delta);
     }
   }
@@ -1428,12 +1637,17 @@ function drawBricks() {
 
     roundRect(brick.x, brick.y, brick.w, brick.h, 6);
     const grad = ctx.createLinearGradient(brick.x, brick.y, brick.x, brick.y + brick.h);
-    grad.addColorStop(0, `hsla(${palette.h}, ${palette.s}%, ${palette.l + 10 + glow * 15}%, 1)`);
-    grad.addColorStop(1, `hsla(${palette.h + 10}, ${Math.max(10, palette.s - 12)}%, ${palette.l - 8}%, 1)`);
+    if (brick.isGolden) {
+      grad.addColorStop(0, `hsla(46, 95%, ${68 + glow * 18}%, 1)`);
+      grad.addColorStop(1, "hsla(35, 88%, 47%, 1)");
+    } else {
+      grad.addColorStop(0, `hsla(${palette.h}, ${palette.s}%, ${palette.l + 10 + glow * 15}%, 1)`);
+      grad.addColorStop(1, `hsla(${palette.h + 10}, ${Math.max(10, palette.s - 12)}%, ${palette.l - 8}%, 1)`);
+    }
     ctx.fillStyle = grad;
     ctx.fill();
 
-    ctx.strokeStyle = "rgba(255,255,255,0.3)";
+    ctx.strokeStyle = brick.isGolden ? "rgba(255,238,178,0.88)" : "rgba(255,255,255,0.3)";
     ctx.lineWidth = 1;
     ctx.stroke();
 
@@ -1446,6 +1660,14 @@ function drawBricks() {
       ctx.fillText(label, brick.x + brick.w * 0.5 + 0.7, brick.y + brick.h * 0.5 + 0.7);
       ctx.fillStyle = palette.text;
       ctx.fillText(label, brick.x + brick.w * 0.5, brick.y + brick.h * 0.5);
+    } else if (brick.isGolden) {
+      ctx.font = `${brick.h < 23 ? 800 : 900} ${brick.h < 23 ? 10 : 11}px Nunito, Trebuchet MS, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "rgba(73,44,0,0.82)";
+      ctx.fillText("GOLD", brick.x + brick.w * 0.5 + 0.7, brick.y + brick.h * 0.5 + 0.7);
+      ctx.fillStyle = "#fff7c8";
+      ctx.fillText("GOLD", brick.x + brick.w * 0.5, brick.y + brick.h * 0.5);
     }
   }
 }
@@ -1459,6 +1681,22 @@ function drawPaddle() {
   ctx.fill();
   ctx.strokeStyle = "rgba(255,255,255,0.5)";
   ctx.stroke();
+
+  if (state.effects.superCannonTimer > 0) {
+    const cannonW = clamp(paddle.width * 0.15, 14, 20);
+    const cannonH = 12;
+    const leftX = paddle.x + Math.min(15, paddle.width * 0.16) - cannonW * 0.5;
+    const rightX = paddle.x + paddle.width - Math.min(15, paddle.width * 0.16) - cannonW * 0.5;
+    const cannonY = paddle.y - cannonH + 1;
+    ctx.fillStyle = "#2d405f";
+    roundRect(leftX, cannonY, cannonW, cannonH, 3);
+    ctx.fill();
+    roundRect(rightX, cannonY, cannonW, cannonH, 3);
+    ctx.fill();
+    ctx.fillStyle = "#ffb04f";
+    ctx.fillRect(leftX + cannonW * 0.32, cannonY - 5, cannonW * 0.36, 5);
+    ctx.fillRect(rightX + cannonW * 0.32, cannonY - 5, cannonW * 0.36, 5);
+  }
 }
 
 function drawBalls() {
@@ -1486,6 +1724,28 @@ function drawBalls() {
     ctx.arc(ball.x, ball.y, ball.radius + 5, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
+  }
+}
+
+function drawFireShots() {
+  for (let i = 0; i < state.fireShots.length; i += 1) {
+    const shot = state.fireShots[i];
+    const tail = 14;
+    ctx.strokeStyle = "rgba(255,130,70,0.7)";
+    ctx.lineWidth = shot.r;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(shot.x, shot.y + tail);
+    ctx.lineTo(shot.x, shot.y);
+    ctx.stroke();
+
+    const grad = ctx.createRadialGradient(shot.x, shot.y, 1, shot.x, shot.y, shot.r + 3);
+    grad.addColorStop(0, "#fff9da");
+    grad.addColorStop(1, "#ff7a39");
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(shot.x, shot.y, shot.r, 0, Math.PI * 2);
+    ctx.fill();
   }
 }
 
@@ -1586,16 +1846,36 @@ function drawCombo() {
   ctx.fillText(`Combo x${state.combo}`, WORLD_WIDTH - 16, 12);
 }
 
+function drawSuperBonusStatus() {
+  if (!state.running || state.effects.superCannonTimer <= 0) return;
+  const text = `CANONS ${state.effects.superCannonTimer.toFixed(1)}s`;
+  ctx.font = "800 14px Nunito, Trebuchet MS, sans-serif";
+  const boxW = ctx.measureText(text).width + 18;
+  const x = WORLD_WIDTH - boxW - 10;
+  const y = 42;
+  ctx.fillStyle = "rgba(0,0,0,0.33)";
+  roundRect(x, y, boxW, 24, 7);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,166,98,0.68)";
+  ctx.stroke();
+  ctx.fillStyle = "#ffd9a6";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, x + 9, y + 12);
+}
+
 function draw() {
   drawBackground();
   drawBricks();
   drawPaddle();
   drawBalls();
+  drawFireShots();
   drawBonuses();
   drawParticles();
   drawPatternTag();
   drawNotice();
   drawCombo();
+  drawSuperBonusStatus();
 }
 
 function loop(timestamp) {
