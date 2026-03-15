@@ -1038,17 +1038,20 @@ function resolveAnswer(choice, reason = "answer") {
   state.quizTimeLeft = 0;
   quizTimerEl.textContent =
     DIFFICULTY_MODES[state.difficulty].quizTime == null ? "Temps: illimité" : "0.0s";
+  let closeDelayMs = 620;
 
   if (isCorrect) {
     applyBonus(bonusType);
     quizFeedback.textContent = `Correct. Bonus gagne: ${bonusName}.`;
     quizFeedback.className = "feedback ok";
   } else if (reason === "timeout") {
-    quizFeedback.textContent = `Temps ecoule. Pas de bonus. Bonne reponse: ${correct}.`;
-    quizFeedback.className = "feedback bad";
+    quizFeedback.textContent = "";
+    quizFeedback.className = "feedback";
+    closeDelayMs = 120;
   } else {
-    quizFeedback.textContent = `Rate. Pas de bonus. Bonne reponse: ${correct}.`;
+    quizFeedback.textContent = `Rate. Bonne reponse: ${correct}.`;
     quizFeedback.className = "feedback bad";
+    closeDelayMs = 3000;
   }
 
   setTimeout(() => {
@@ -1056,7 +1059,7 @@ function resolveAnswer(choice, reason = "answer") {
     state.pendingQuestion = null;
     state.awaitingAnswer = false;
     startNextBonusQuestion();
-  }, 620);
+  }, closeDelayMs);
 }
 
 function spawnBurst(x, y, color) {
@@ -1435,7 +1438,7 @@ function drawBricks() {
     ctx.stroke();
 
     if (brick.verb) {
-      ctx.font = `${brick.h < 23 ? 700 : 800} ${brick.h < 23 ? 10 : 11}px Trebuchet MS, sans-serif`;
+      ctx.font = `${brick.h < 23 ? 700 : 800} ${brick.h < 23 ? 10 : 11}px Nunito, Trebuchet MS, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       const label = fitBrickLabel(brick.verb.base.toUpperCase(), brick.w - 8);
@@ -1504,12 +1507,12 @@ function drawBonuses() {
     ctx.stroke();
 
     ctx.fillStyle = "#102238";
-    ctx.font = "800 10px Trebuchet MS, sans-serif";
+    ctx.font = "800 10px Nunito, Trebuchet MS, sans-serif";
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
     ctx.fillText(bonus.icon, bonus.x - bonus.w * 0.5 + 6, bonus.y - bonus.h * 0.5 + 4);
 
-    ctx.font = "900 12px Trebuchet MS, sans-serif";
+    ctx.font = "900 12px Nunito, Trebuchet MS, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     const verbText = bonus.verb ? bonus.verb.base.toUpperCase() : bonus.name.toUpperCase();
@@ -1548,7 +1551,11 @@ function drawNotice() {
   ctx.strokeStyle = "rgba(255,255,255,0.33)";
   ctx.stroke();
   ctx.fillStyle = "#e9faff";
-  ctx.font = "700 17px Trebuchet MS, sans-serif";
+  if (state.running && state.countdownActive) {
+    ctx.font = "700 40px Bangers, Nunito, Trebuchet MS, cursive";
+  } else {
+    ctx.font = "800 17px Nunito, Trebuchet MS, sans-serif";
+  }
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText(text, WORLD_WIDTH * 0.5, WORLD_HEIGHT * 0.62 + 18);
@@ -1557,7 +1564,7 @@ function drawNotice() {
 function drawPatternTag() {
   if (!state.patternName || !state.running) return;
   const label = `Motif: ${state.patternName}`;
-  ctx.font = "700 13px Trebuchet MS, sans-serif";
+  ctx.font = "800 13px Nunito, Trebuchet MS, sans-serif";
   const tagWidth = clamp(ctx.measureText(label).width + 20, 170, WORLD_WIDTH * 0.64);
   ctx.fillStyle = "rgba(0,0,0,0.28)";
   roundRect(12, 10, tagWidth, 28, 7);
@@ -1573,7 +1580,7 @@ function drawPatternTag() {
 function drawCombo() {
   if (state.combo < 2) return;
   ctx.fillStyle = "rgba(255, 230, 145, 0.92)";
-  ctx.font = "700 19px Trebuchet MS, sans-serif";
+  ctx.font = "800 19px Nunito, Trebuchet MS, sans-serif";
   ctx.textAlign = "right";
   ctx.textBaseline = "top";
   ctx.fillText(`Combo x${state.combo}`, WORLD_WIDTH - 16, 12);
@@ -1609,8 +1616,11 @@ function setTouchTarget(clientX) {
 function isLowControlZone(clientY) {
   const rect = canvas.getBoundingClientRect();
   const lowerActivation = rect.top + rect.height * (state.isPortraitMode ? 0.65 : 0.58);
-  const iphoneSafeBottom = state.isPortraitMode ? 46 : 26;
-  const safeLimit = rect.bottom - iphoneSafeBottom;
+  const iphoneSafeBottom = state.isPortraitMode ? 18 : 12;
+  let safeLimit = rect.bottom - iphoneSafeBottom;
+  if (safeLimit - lowerActivation < 36) {
+    safeLimit = rect.bottom - 4;
+  }
   return clientY >= lowerActivation && clientY <= safeLimit;
 }
 
@@ -1619,11 +1629,29 @@ function refreshResponsiveLayout(preserveObjects = true) {
   updateWorldBounds(portraitMode, preserveObjects);
 }
 
-function togglePause() {
-  if (!state.running || state.awaitingAnswer || screenOverlay.classList.contains("visible")) return;
-  state.paused = !state.paused;
-  showNotice(state.paused ? "Pause" : "Reprise", 1.2);
+function setPaused(nextPaused, automatic = false) {
+  if (!state.running || screenOverlay.classList.contains("visible")) return;
+  if (state.paused === nextPaused) return;
+  state.paused = nextPaused;
+
+  if (state.paused) {
+    if (!automatic) showNotice("Pause", 1.2);
+  } else {
+    state.countdownActive = true;
+    state.roundCountdown = 3;
+    showNotice("Reprise", 0.8);
+  }
   refreshHud();
+}
+
+function togglePause() {
+  setPaused(!state.paused, false);
+}
+
+function autoPauseOnFocusLoss() {
+  if (document.hidden || !document.hasFocus()) {
+    setPaused(true, true);
+  }
 }
 
 document.addEventListener("keydown", (event) => {
@@ -1684,8 +1712,8 @@ document.addEventListener("keydown", (event) => {
     event.preventDefault();
   }
   if (event.code === "Space") {
-    if (state.running && state.ballLocked && !state.awaitingAnswer) {
-      launchBall();
+    if (state.running && !screenOverlay.classList.contains("visible")) {
+      togglePause();
     } else if (!state.startedOnce && screenOverlay.classList.contains("visible")) {
       startBtn.click();
     }
@@ -1775,6 +1803,14 @@ if (window.visualViewport) {
     fitCanvasToViewport();
   });
 }
+
+window.addEventListener("blur", () => {
+  autoPauseOnFocusLoss();
+});
+
+document.addEventListener("visibilitychange", () => {
+  autoPauseOnFocusLoss();
+});
 
 showMainOverlay(
   "BreakVerb",
