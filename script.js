@@ -1303,7 +1303,7 @@ function refreshHud() {
   if (bestScoreEl) bestScoreEl.textContent = `${Math.max(state.bestScore, state.score)}`;
   if (livesEl) livesEl.textContent = `${state.lives}`;
   if (levelEl) levelEl.textContent = `${state.level}`;
-  if (remainingEl) remainingEl.textContent = `${state.remaining}`;
+  if (remainingEl) remainingEl.textContent = `${state.remainingVerbs ?? state.remaining}`;
   if (modeLabelEl) modeLabelEl.textContent = difficultyLabel(state.difficulty);
   if (pauseBtn) pauseBtn.textContent = state.paused ? t("resume") : t("pause");
 }
@@ -1499,6 +1499,7 @@ function resetLevel(level, keepStats = true) {
   paddle.y = getPaddleRestY();
   state.bricks = createBricks(level);
   state.remaining = state.bricks.length;
+  state.remainingVerbs = state.bricks.filter(b => b.hasBonus).length;
   state.fallingBonuses = [];
   state.bonusQueue = [];
   state.pendingQuestion = null;
@@ -2072,6 +2073,7 @@ function destroyBrick(brick, axis, ball, options = {}) {
   brick.active = false;
   brick.glow = 1;
   state.remaining -= 1;
+  if (brick.hasBonus) state.remainingVerbs -= 1;
   const basePoints = brick.isGolden ? 220 : 70;
   state.score += basePoints + state.combo * 8;
   if (!fromProjectile) {
@@ -2495,7 +2497,7 @@ function update(delta) {
   updateQuizTimer(delta);
   if (!state.paused) updateParticles(delta);
 
-  if (state.running && !state.paused && state.remaining <= 0 && !state.awaitingAnswer) {
+  if (state.running && !state.paused && state.remainingVerbs <= 0 && !state.awaitingAnswer) {
     nextLevel();
   }
 
