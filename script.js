@@ -27,9 +27,12 @@ const playFromLeaderboardBtn = document.getElementById("playFromLeaderboardBtn")
 const menuHomeView = document.getElementById("menuHomeView");
 const menuSettingsView = document.getElementById("menuSettingsView");
 const menuLeaderboardView = document.getElementById("menuLeaderboardView");
+const menuLevelAdvanceView = document.getElementById("menuLevelAdvanceView");
 const settingsTitleEl = document.getElementById("settingsTitle");
 const difficultyTitleEl = document.getElementById("difficultyTitle");
 const difficultyHintEl = document.getElementById("difficultyHint");
+const psychedelicTitleEl = document.getElementById("psychedelicTitle");
+const psychedelicToggleBtn = document.getElementById("psychedelicToggleBtn");
 const settingsCreditEl = document.getElementById("settingsCredit");
 const homeHintEl = document.getElementById("homeHint");
 const leaderboardTitleEl = document.getElementById("leaderboardTitle");
@@ -39,6 +42,9 @@ const nameEntryLabel = document.getElementById("nameEntryLabel");
 const playerNameInput = document.getElementById("playerNameInput");
 const saveScoreBtn = document.getElementById("saveScoreBtn");
 const leaderboardList = document.getElementById("leaderboardList");
+const errorStatsHeadingEl = document.getElementById("errorStatsHeading");
+const errorStatsList = document.getElementById("errorStatsList");
+const nextLevelCountdownTextEl = document.getElementById("nextLevelCountdownText");
 const difficultyButtons = Array.from(document.querySelectorAll(".difficulty-btn"));
 
 const quizOverlay = document.getElementById("quizOverlay");
@@ -47,6 +53,8 @@ const quizPrompt = document.getElementById("quizPrompt");
 const quizTimerEl = document.getElementById("quizTimer");
 const quizChoices = document.getElementById("quizChoices");
 const quizFeedback = document.getElementById("quizFeedback");
+const championOverlay = document.getElementById("championOverlay");
+const championTitleEl = document.getElementById("championTitle");
 const arenaWrap = document.querySelector(".arena-wrap");
 
 const LANDSCAPE_WORLD = { width: 960, height: 540 };
@@ -59,16 +67,40 @@ const SUPER_CHALLENGE_QUESTIONS = 3;
 const SUPER_CANNON_DURATION = 5;
 const SUPER_CANNON_SHOT_INTERVAL = 0.26;
 const SUPER_CANNON_SPEED = 640;
+const PSYCHEDELIC_WAVE_SPEED = 1.7;
+const PSYCHEDELIC_WAVE_SPEED_VARIANCE = 0.35;
+const PSYCHEDELIC_AMP_X_LANDSCAPE = 11;
+const PSYCHEDELIC_AMP_X_PORTRAIT = 7;
+const PSYCHEDELIC_AMP_Y_LANDSCAPE = 3.5;
+const PSYCHEDELIC_AMP_Y_PORTRAIT = 2.6;
+const PADDLE_BOTTOM_OFFSET_LANDSCAPE = 36;
+const PADDLE_BOTTOM_OFFSET_PORTRAIT = 64;
+const PADDLE_BOTTOM_OFFSET_IPHONE_PORTRAIT = 92;
+const FINAL_LEVEL = 15;
+const CHAMPION_RAIN_DURATION = 10;
+const CHAMPION_RAIN_SPAWN_INTERVAL = 0.06;
 const LEADERBOARD_KEY = "breakverb_leaderboard_v1";
+const ERROR_STATS_KEY = "breakverb_error_stats_v1";
 const SETTINGS_KEY = "breakverb_settings_v1";
+const MAX_ERROR_STATS_ROWS = 15;
+const MAX_ERROR_STATS_STORE = 120;
+const CHAMPION_RAIN_EMOJIS = [
+  "\u{1F642}",
+  "\u{1F44D}",
+  "\u{1F1EC}\u{1F1E7}",
+  "\u{1F1FA}\u{1F1F8}",
+  "\u{1F1E6}\u{1F1FA}",
+  "\u{1F1E8}\u{1F1E6}",
+  "\u{1F1EE}\u{1F1EA}",
+  "\u{1F1F3}\u{1F1FF}",
+];
 
 const I18N = {
   fr: {
     document_title: "BreakVerb - Casse-brique des verbes irréguliers",
     canvas_aria: "Jeu casse-brique éducatif",
     game_title: "BreakVerb",
-    menu_intro:
-      "Mode casse-brique classique: questions sur bonus. Passe combo {combo}+ ou casse la brique GOLD pour lancer un super défi x3.",
+    menu_intro: "Un jeu où vos réflexes dépendent de votre maîtrise des verbes irréguliers !",
     menu_start: "Démarrer",
     menu_settings: "Réglages",
     menu_leaderboard: "Classement",
@@ -82,17 +114,28 @@ const I18N = {
     stats_level: "Niveau",
     stats_remaining: "Reste",
     stats_mode: "Mode",
-    difficulty_title: "Difficulté quiz",
+    difficulty_title: "Difficulté du quiz",
     difficulty_hint: "Facile: illimité • Normal: 10s • Expert: 5s",
     difficulty_easy: "Facile",
     difficulty_normal: "Normal",
     difficulty_expert: "Expert",
+    difficulty_easy_btn: "Facile (∞)",
+    difficulty_normal_btn: "Normal (10s)",
+    difficulty_expert_btn: "Expert (5s)",
+    psychedelic_title: "Mode psychédélique",
+    psychedelic_on: "Activé",
+    psychedelic_off: "Désactivé",
+    psychedelic_on_btn: "Psychédélique : activé",
+    psychedelic_off_btn: "Psychédélique : désactivé",
     controls_hint:
       "Clavier: ← → ou A D • Espace pour lancer la balle\nMobile/Tablette: glisse le doigt dans la zone basse du jeu\nEspace pause/reprise • R relancer",
     leaderboard_title: "Classement",
     leaderboard_empty: "Aucun score pour le moment.",
     leaderboard_row: "{name} — {score} pts (Niv. {level})",
-    name_entry_label: "Nouveau top score. Entre ton pseudo:",
+    error_stats_title: "15 erreurs les plus fréquentes",
+    error_stats_empty: "Aucune erreur enregistrée.",
+    error_stats_row: "{count}x — {prompt} | choisi {wrong} | attendu {correct}",
+    name_entry_label: "Nouveau meilleur score. Entre ton pseudo :",
     save_score: "Enregistrer le score",
     quiz_title: "Question verbale",
     quiz_keyboard_hint: "Choix clavier: 1 2 3, ou flèches + Entrée.",
@@ -103,17 +146,17 @@ const I18N = {
     quiz_feedback_super_done: "Défi validé: canons de feu débloqués.",
     quiz_feedback_super_step: "Correct ({solved}/{total}).",
     bonus_long_paddle: "Raquette XL",
-    bonus_multiball: "Double Balle",
-    bonus_extra_life: "Vies Bonus",
-    bonus_slow_ball: "Balle Lente",
+    bonus_multiball: "Double balle",
+    bonus_extra_life: "Vies bonus",
+    bonus_slow_ball: "Balle lente",
     notice_pattern: "Motif {name}",
-    notice_bonus_long_paddle: "Bonus actif: Raquette XL (10s)",
-    notice_bonus_multiball: "Bonus actif: Double Balle",
-    notice_bonus_lives: "Bonus actif: +{count} vies",
-    notice_bonus_slow_ball: "Bonus actif: Balle Lente",
-    notice_super_bonus: "SUPER BONUS: canons de feu actifs",
-    notice_super_trigger_golden: "Brique dorée: super défi x3",
-    notice_super_trigger_combo: "Combo {combo}+: super défi x3",
+    notice_bonus_long_paddle: "Bonus actif : Raquette XL (10s)",
+    notice_bonus_multiball: "Bonus actif : Double balle",
+    notice_bonus_lives: "Bonus actif : +{count} vies",
+    notice_bonus_slow_ball: "Bonus actif : Balle lente",
+    notice_super_bonus: "SUPER BONUS : canons de feu actifs",
+    notice_super_trigger_golden: "Brique dorée : super défi x3",
+    notice_super_trigger_combo: "Combo {combo}+ : super défi x3",
     notice_life_lost: "Vie perdue",
     notice_cannons_end: "Canons de feu terminés",
     notice_paddle_end: "Raquette XL terminée",
@@ -121,13 +164,17 @@ const I18N = {
     notice_resume: "Reprise",
     notice_press_space: "Appuie sur Espace pour lancer la balle",
     game_over_title: "Partie terminée",
-    game_over_text_qualifies: "Top score potentiel. Entre ton pseudo et enregistre ton score.",
+    game_over_text_qualifies: "Meilleur score potentiel. Entre ton pseudo et enregistre ton score.",
     game_over_text_regular: "Tu as perdu toutes tes vies. Relance une partie pour battre ton score.",
     game_over_replay: "Rejouer",
     level_complete_title: "Niveau {level} terminé",
-    level_complete_text: "Prochain motif: {name}. Vitesse et challenge augmentent.",
+    level_complete_text: "Prochain motif : {name}. Vitesse et difficulté augmentent.",
     level_next: "Niveau suivant",
-    pattern_prefix: "Motif: {name}",
+    level_next_countdown: "Niveau suivant dans {seconds}...",
+    champion_message: "Bravo, tu es le champion de VerbBreaker !",
+    champion_name_prompt: "Entre ton nom pour le classement.",
+    champion_name_label: "Champion ! Entre ton pseudo pour le classement :",
+    pattern_prefix: "Motif : {name}",
     combo_label: "Combo x{combo}",
     super_status: "CANONS {seconds}s",
     brand_player: "JOUEUR",
@@ -138,8 +185,7 @@ const I18N = {
     document_title: "BreakVerb - Irregular Verbs Brick Breaker",
     canvas_aria: "Educational brick breaker game",
     game_title: "BreakVerb",
-    menu_intro:
-      "Classic brick breaker with quiz bonuses. Reach {combo}+ combo or break the GOLD brick to trigger a 3-question super challenge.",
+    menu_intro: "A game where your reflexes depend on your mastery of irregular verbs!",
     menu_start: "Start Game",
     menu_settings: "Settings",
     menu_leaderboard: "Leaderboard",
@@ -158,12 +204,23 @@ const I18N = {
     difficulty_easy: "Easy",
     difficulty_normal: "Normal",
     difficulty_expert: "Expert",
+    difficulty_easy_btn: "Easy (∞)",
+    difficulty_normal_btn: "Normal (10s)",
+    difficulty_expert_btn: "Expert (5s)",
+    psychedelic_title: "Psychedelic mode",
+    psychedelic_on: "On",
+    psychedelic_off: "Off",
+    psychedelic_on_btn: "Psychedelic: ON",
+    psychedelic_off_btn: "Psychedelic: OFF",
     controls_hint:
       "Keyboard: ← → or A D • Space to launch the ball\nMobile/Tablet: slide in the lower control area\nSpace pause/resume • R restart",
     leaderboard_title: "Leaderboard",
     leaderboard_empty: "No scores yet.",
     leaderboard_row: "{name} — {score} pts (Lvl {level})",
-    name_entry_label: "New top score. Enter your nickname:",
+    error_stats_title: "15 Most Frequent Mistakes",
+    error_stats_empty: "No mistakes recorded yet.",
+    error_stats_row: "{count}x — {prompt} | picked {wrong} | expected {correct}",
+    name_entry_label: "New high score. Enter your nickname:",
     save_score: "Save score",
     quiz_title: "Verb Question",
     quiz_keyboard_hint: "Keyboard choices: 1 2 3, or arrows + Enter.",
@@ -196,8 +253,12 @@ const I18N = {
     game_over_text_regular: "You lost all lives. Start again to beat your score.",
     game_over_replay: "Play Again",
     level_complete_title: "Level {level} complete",
-    level_complete_text: "Next pattern: {name}. Speed and challenge increase.",
+    level_complete_text: "Next pattern: {name}. Speed and difficulty increase.",
     level_next: "Next Level",
+    level_next_countdown: "Next level in {seconds}...",
+    champion_message: "Congrats, you are the VerbBreaker champion!",
+    champion_name_prompt: "Enter your name for the leaderboard.",
+    champion_name_label: "Champion! Enter your nickname for the leaderboard:",
     pattern_prefix: "Pattern: {name}",
     combo_label: "Combo x{combo}",
     super_status: "CANNONS {seconds}s",
@@ -208,20 +269,20 @@ const I18N = {
 };
 
 const LEVEL_NAME_EN = {
-  "UK - Croix de St George": "UK - St George Cross",
+  "UK - Croix de Saint George": "UK - St George Cross",
   "UK - Big Ben": "UK - Big Ben",
   "UK - Couronne Royale": "UK - Royal Crown",
   "UK - Union Jack": "UK - Union Jack",
   "USA - Aigle": "USA - Eagle",
-  "USA - Statue de la Liberte": "USA - Statue of Liberty",
+  "USA - Statue de la Liberté": "USA - Statue of Liberty",
   "USA - Stars and Stripes": "USA - Stars and Stripes",
   "Australie - Koala": "Australia - Koala",
   "Australie - Boomerang": "Australia - Boomerang",
-  "Australie - Opera de Sydney": "Australia - Sydney Opera",
-  "Irlande - Harpe Celtique": "Ireland - Celtic Harp",
-  "Canada - Feuille d Erable": "Canada - Maple Leaf",
-  "Nouvelle-Zelande - Porte Maori": "New Zealand - Maori Gate",
-  "Jamaique - Soleil": "Jamaica - Sun",
+  "Australie - Opéra de Sydney": "Australia - Sydney Opera",
+  "Irlande - Harpe celtique": "Ireland - Celtic Harp",
+  "Canada - Feuille d'érable": "Canada - Maple Leaf",
+  "Nouvelle-Zélande - Porte maorie": "New Zealand - Maori Gate",
+  "Jamaïque - Soleil": "Jamaica - Sun",
   "Afrique du Sud - Montagne": "South Africa - Mountain",
 };
 
@@ -303,7 +364,7 @@ const IRREGULAR_VERBS = [
 
 const LEVEL_PATTERNS = [
   {
-    name: "UK - Croix de St George",
+    name: "UK - Croix de Saint George",
     grid: [
       "............",
       ".WWWWRRWWWW.",
@@ -378,7 +439,7 @@ const LEVEL_PATTERNS = [
     ],
   },
   {
-    name: "USA - Statue de la Liberte",
+    name: "USA - Statue de la Liberté",
     grid: [
       ".....Y......",
       "....YYY.....",
@@ -438,7 +499,7 @@ const LEVEL_PATTERNS = [
     ],
   },
   {
-    name: "Australie - Opera de Sydney",
+    name: "Australie - Opéra de Sydney",
     grid: [
       "............",
       "....WW......",
@@ -453,7 +514,7 @@ const LEVEL_PATTERNS = [
     ],
   },
   {
-    name: "Irlande - Harpe Celtique",
+    name: "Irlande - Harpe celtique",
     grid: [
       ".....BB.....",
       "....BBBB....",
@@ -468,7 +529,7 @@ const LEVEL_PATTERNS = [
     ],
   },
   {
-    name: "Canada - Feuille d Erable",
+    name: "Canada - Feuille d'érable",
     grid: [
       ".....R......",
       "....RRR.....",
@@ -483,7 +544,7 @@ const LEVEL_PATTERNS = [
     ],
   },
   {
-    name: "Nouvelle-Zelande - Porte Maori",
+    name: "Nouvelle-Zélande - Porte maorie",
     grid: [
       "............",
       ".RRRRRRRRRR.",
@@ -498,7 +559,7 @@ const LEVEL_PATTERNS = [
     ],
   },
   {
-    name: "Jamaique - Soleil",
+    name: "Jamaïque - Soleil",
     grid: [
       "....YYYY....",
       "..YYYYYYYY..",
@@ -599,7 +660,10 @@ const state = {
   quizSelectedIndex: -1,
   locale: "fr",
   difficulty: "normal",
+  psychedelicMode: false,
+  brickMotionTime: 0,
   leaderboard: [],
+  errorStats: [],
   pendingLeaderboardScore: null,
   effects: {
     paddleTimer: 0,
@@ -612,6 +676,15 @@ const state = {
   notice: "",
   noticeTimer: 0,
   isPortraitMode: false,
+  levelAdvanceTimerId: null,
+  champion: {
+    active: false,
+    timer: 0,
+    spawnTimer: 0,
+    drops: [],
+    endTimerId: null,
+  },
+  returnToHomeAfterScoreSave: false,
 };
 
 state.locale = detectLocale();
@@ -741,24 +814,28 @@ function applyStaticTranslations() {
 
   if (settingsTitleEl) settingsTitleEl.textContent = t("menu_settings");
   if (difficultyTitleEl) difficultyTitleEl.textContent = t("difficulty_title");
-  if (difficultyHintEl) difficultyHintEl.textContent = t("difficulty_hint");
+  if (psychedelicTitleEl) psychedelicTitleEl.textContent = t("psychedelic_title");
   if (settingsCreditEl) settingsCreditEl.textContent = t("settings_credit");
 
   if (homeHintEl) homeHintEl.innerHTML = t("controls_hint").split("\n").join("<br />");
   if (leaderboardTitleEl) leaderboardTitleEl.textContent = t("leaderboard_title");
   if (leaderboardHeadingEl) leaderboardHeadingEl.textContent = t("leaderboard_title");
+  if (errorStatsHeadingEl) errorStatsHeadingEl.textContent = t("error_stats_title");
   if (nameEntryLabel) nameEntryLabel.textContent = t("name_entry_label");
   if (saveScoreBtn) saveScoreBtn.textContent = t("save_score");
   if (playerNameInput) playerNameInput.placeholder = t("brand_player");
 
   if (quizTitleEl) quizTitleEl.textContent = t("quiz_title");
+  if (championTitleEl) championTitleEl.textContent = t("champion_message");
   difficultyButtons.forEach((btn) => {
-    if (btn.dataset.difficulty === "easy") btn.textContent = t("difficulty_easy");
-    else if (btn.dataset.difficulty === "expert") btn.textContent = t("difficulty_expert");
-    else btn.textContent = t("difficulty_normal");
+    if (btn.dataset.difficulty === "easy") btn.textContent = t("difficulty_easy_btn");
+    else if (btn.dataset.difficulty === "expert") btn.textContent = t("difficulty_expert_btn");
+    else btn.textContent = t("difficulty_normal_btn");
   });
+  renderPsychedelicButton();
 
   localizeBonusTypeNames();
+  renderLeaderboard();
 }
 
 function renderDifficultyButtons() {
@@ -770,13 +847,45 @@ function renderDifficultyButtons() {
   if (modeLabelEl) modeLabelEl.textContent = difficultyLabel(mode);
 }
 
+function renderPsychedelicButton() {
+  if (!psychedelicToggleBtn) return;
+  psychedelicToggleBtn.classList.toggle("active", state.psychedelicMode);
+  psychedelicToggleBtn.textContent = state.psychedelicMode ? t("psychedelic_on_btn") : t("psychedelic_off_btn");
+  psychedelicToggleBtn.setAttribute(
+    "aria-label",
+    state.psychedelicMode ? t("psychedelic_on") : t("psychedelic_off"),
+  );
+}
+
+function persistSettings() {
+  writeJsonStorage(SETTINGS_KEY, {
+    difficulty: state.difficulty,
+    psychedelicMode: state.psychedelicMode,
+  });
+}
+
 function setDifficulty(mode, persist = true) {
   if (!DIFFICULTY_MODES[mode]) return;
   state.difficulty = mode;
   renderDifficultyButtons();
   if (persist) {
-    writeJsonStorage(SETTINGS_KEY, { difficulty: mode });
+    persistSettings();
   }
+}
+
+function setPsychedelicMode(enabled, persist = true) {
+  state.psychedelicMode = Boolean(enabled);
+  if (!state.psychedelicMode) {
+    state.brickMotionTime = 0;
+    for (let i = 0; i < state.bricks.length; i += 1) {
+      const brick = state.bricks[i];
+      if (typeof brick.baseX !== "number" || typeof brick.baseY !== "number") continue;
+      brick.x = brick.baseX;
+      brick.y = brick.baseY;
+    }
+  }
+  renderPsychedelicButton();
+  if (persist) persistSettings();
 }
 
 function loadSettings() {
@@ -786,7 +895,9 @@ function loadSettings() {
   } else {
     state.difficulty = "normal";
   }
+  state.psychedelicMode = Boolean(settings?.psychedelicMode);
   renderDifficultyButtons();
+  renderPsychedelicButton();
 }
 
 function normalizeLeaderboardRows(rows) {
@@ -803,6 +914,143 @@ function normalizeLeaderboardRows(rows) {
   }
   safeRows.sort((a, b) => b.score - a.score || b.level - a.level || a.date - b.date);
   return safeRows.slice(0, 10);
+}
+
+function normalizeErrorToken(value, maxLength = 54) {
+  const raw = `${value || ""}`.trim().replace(/\s+/g, " ");
+  if (!raw) return "";
+  return raw.length <= maxLength ? raw : `${raw.slice(0, maxLength - 1)}...`;
+}
+
+function normalizeTargetKey(value) {
+  if (value === "base" || value === "past" || value === "pp") return value;
+  return null;
+}
+
+function inferTargetKeyFromPrompt(prompt) {
+  const slots = `${prompt || ""}`.split("/").map((slot) => slot.trim());
+  for (let i = 0; i < slots.length; i += 1) {
+    if (slots[i].includes("____")) {
+      if (i === 0) return "base";
+      if (i === 1) return "past";
+      if (i === 2) return "pp";
+      break;
+    }
+  }
+  return null;
+}
+
+function inferVerbBaseFromPrompt(prompt, correct, targetKey = null) {
+  const slots = `${prompt || ""}`.split("/").map((slot) => slot.trim());
+  if (slots.length >= 3 && slots[0] && !slots[0].includes("____")) {
+    return normalizeErrorToken(slots[0], 30).toLowerCase();
+  }
+  if (targetKey === "base" && correct) {
+    return normalizeErrorToken(correct, 30).toLowerCase();
+  }
+  return "";
+}
+
+function buildErrorStatKey(prompt, wrong, correct) {
+  const p = normalizeErrorToken(prompt).toUpperCase();
+  const w = normalizeErrorToken(wrong, 40).toLowerCase();
+  const c = normalizeErrorToken(correct, 40).toLowerCase();
+  return `${p}__${w}__${c}`;
+}
+
+function normalizeErrorStats(rows) {
+  if (!Array.isArray(rows)) return [];
+  const map = new Map();
+
+  for (let i = 0; i < rows.length; i += 1) {
+    const row = rows[i];
+    if (!row || typeof row !== "object") continue;
+    const prompt = normalizeErrorToken(row.prompt);
+    const wrong = normalizeErrorToken(row.wrong, 40);
+    const correct = normalizeErrorToken(row.correct, 40);
+    if (!prompt || !wrong || !correct) continue;
+    const targetKey = normalizeTargetKey(row.targetKey) || inferTargetKeyFromPrompt(prompt);
+    const verbBase =
+      normalizeErrorToken(row.verbBase, 30).toLowerCase() || inferVerbBaseFromPrompt(prompt, correct, targetKey);
+    const count = Math.max(1, Math.floor(Number(row.count) || 0));
+    const key = row.key ? `${row.key}` : buildErrorStatKey(prompt, wrong, correct);
+    const lastAt = Number(row.lastAt) || Date.now();
+    const existing = map.get(key);
+    if (existing) {
+      existing.count += count;
+      existing.lastAt = Math.max(existing.lastAt, lastAt);
+      if (!existing.verbBase && verbBase) existing.verbBase = verbBase;
+      if (!existing.targetKey && targetKey) existing.targetKey = targetKey;
+    } else {
+      map.set(key, { key, prompt, wrong, correct, count, lastAt, verbBase, targetKey });
+    }
+  }
+
+  const merged = Array.from(map.values());
+  merged.sort((a, b) => b.count - a.count || b.lastAt - a.lastAt);
+  return merged.slice(0, MAX_ERROR_STATS_STORE);
+}
+
+function saveErrorStats() {
+  state.errorStats = normalizeErrorStats(state.errorStats);
+  writeJsonStorage(ERROR_STATS_KEY, state.errorStats);
+  renderErrorStats();
+}
+
+function loadErrorStats() {
+  state.errorStats = normalizeErrorStats(readJsonStorage(ERROR_STATS_KEY, []));
+  renderErrorStats();
+}
+
+function recordAnswerError(prompt, wrong, correct, meta = {}) {
+  const safePrompt = normalizeErrorToken(prompt);
+  const safeWrong = normalizeErrorToken(wrong, 40);
+  const safeCorrect = normalizeErrorToken(correct, 40);
+  if (!safePrompt || !safeWrong || !safeCorrect) return;
+  const targetKey = normalizeTargetKey(meta.targetKey) || inferTargetKeyFromPrompt(safePrompt);
+  const verbBase =
+    normalizeErrorToken(meta.verbBase, 30).toLowerCase() || inferVerbBaseFromPrompt(safePrompt, safeCorrect, targetKey);
+  const key = buildErrorStatKey(safePrompt, safeWrong, safeCorrect);
+  const existing = state.errorStats.find((row) => row.key === key);
+  if (existing) {
+    existing.count += 1;
+    existing.lastAt = Date.now();
+    if (!existing.verbBase && verbBase) existing.verbBase = verbBase;
+    if (!existing.targetKey && targetKey) existing.targetKey = targetKey;
+  } else {
+    state.errorStats.push({
+      key,
+      prompt: safePrompt.toUpperCase(),
+      wrong: safeWrong.toUpperCase(),
+      correct: safeCorrect.toUpperCase(),
+      count: 1,
+      lastAt: Date.now(),
+      verbBase,
+      targetKey,
+    });
+  }
+  saveErrorStats();
+}
+
+function buildErrorBiasMaps() {
+  const verbCounts = new Map();
+  const targetCounts = new Map();
+  for (let i = 0; i < state.errorStats.length; i += 1) {
+    const row = state.errorStats[i];
+    if (!row || typeof row !== "object") continue;
+    const count = Math.max(0, Number(row.count) || 0);
+    if (count <= 0) continue;
+    const verbBase = normalizeErrorToken(row.verbBase, 30).toLowerCase();
+    if (!verbBase) continue;
+
+    verbCounts.set(verbBase, (verbCounts.get(verbBase) || 0) + count);
+    const targetKey = normalizeTargetKey(row.targetKey);
+    if (targetKey) {
+      const targetIndex = `${verbBase}:${targetKey}`;
+      targetCounts.set(targetIndex, (targetCounts.get(targetIndex) || 0) + count);
+    }
+  }
+  return { verbCounts, targetCounts };
 }
 
 function loadLeaderboard() {
@@ -857,6 +1105,30 @@ function renderLeaderboard() {
   if (bestScoreEl) {
     bestScoreEl.textContent = `${Math.max(state.bestScore, state.score)}`;
   }
+  renderErrorStats();
+}
+
+function renderErrorStats() {
+  if (!errorStatsList) return;
+  errorStatsList.innerHTML = "";
+  const rows = normalizeErrorStats(state.errorStats).slice(0, MAX_ERROR_STATS_ROWS);
+  if (rows.length === 0) {
+    const li = document.createElement("li");
+    li.textContent = t("error_stats_empty");
+    errorStatsList.appendChild(li);
+    return;
+  }
+  for (let i = 0; i < rows.length; i += 1) {
+    const row = rows[i];
+    const li = document.createElement("li");
+    li.textContent = t("error_stats_row", {
+      count: row.count,
+      prompt: row.prompt,
+      wrong: row.wrong,
+      correct: row.correct,
+    });
+    errorStatsList.appendChild(li);
+  }
 }
 
 function setNameEntryVisible(visible) {
@@ -874,6 +1146,20 @@ function getBrickLayout() {
     sideMargin: WORLD_WIDTH * (state.isPortraitMode ? 0.02 : 0.015),
     gap: Math.max(3, WORLD_WIDTH * (state.isPortraitMode ? 0.006 : 0.0042)),
   };
+}
+
+function isIPhoneDevice() {
+  return /iphone/i.test(navigator.userAgent || "");
+}
+
+function getPaddleRestY() {
+  if (state.isPortraitMode && isIPhoneDevice()) {
+    return WORLD_HEIGHT - PADDLE_BOTTOM_OFFSET_IPHONE_PORTRAIT;
+  }
+  if (state.isPortraitMode) {
+    return WORLD_HEIGHT - PADDLE_BOTTOM_OFFSET_PORTRAIT;
+  }
+  return WORLD_HEIGHT - PADDLE_BOTTOM_OFFSET_LANDSCAPE;
 }
 
 function fitCanvasToViewport() {
@@ -909,7 +1195,7 @@ function updateWorldBounds(portraitMode, preserveObjects = true) {
   if (preserveObjects) {
     paddle.width = clamp(paddle.width * scaleX, 96, 240);
     paddle.x = clamp(paddle.x * scaleX, 8, WORLD_WIDTH - paddle.width - 8);
-    paddle.y = WORLD_HEIGHT - 36;
+    paddle.y = getPaddleRestY();
     state.basePaddleWidth = clamp(state.basePaddleWidth * scaleX, 96, 220);
     state.touchTargetX *= scaleX;
 
@@ -927,8 +1213,12 @@ function updateWorldBounds(portraitMode, preserveObjects = true) {
       const brick = state.bricks[i];
       brick.x *= scaleX;
       brick.y *= scaleY;
+      if (typeof brick.baseX === "number") brick.baseX *= scaleX;
+      if (typeof brick.baseY === "number") brick.baseY *= scaleY;
       brick.w *= scaleX;
       brick.h *= scaleY;
+      if (typeof brick.motionAmpX === "number") brick.motionAmpX *= scaleX;
+      if (typeof brick.motionAmpY === "number") brick.motionAmpY *= scaleY;
     }
 
     for (let i = 0; i < state.fallingBonuses.length; i += 1) {
@@ -953,7 +1243,7 @@ function updateWorldBounds(portraitMode, preserveObjects = true) {
       shot.vy *= scaleY;
     }
   } else {
-    paddle.y = WORLD_HEIGHT - 36;
+    paddle.y = getPaddleRestY();
     state.touchTargetX = WORLD_WIDTH * 0.5;
   }
 
@@ -1008,11 +1298,11 @@ function roundRect(x, y, w, h, r) {
 }
 
 function refreshHud() {
-  scoreEl.textContent = `${state.score}`;
-  bestScoreEl.textContent = `${Math.max(state.bestScore, state.score)}`;
-  livesEl.textContent = `${state.lives}`;
-  levelEl.textContent = `${state.level}`;
-  remainingEl.textContent = `${state.remaining}`;
+  if (scoreEl) scoreEl.textContent = `${state.score}`;
+  if (bestScoreEl) bestScoreEl.textContent = `${Math.max(state.bestScore, state.score)}`;
+  if (livesEl) livesEl.textContent = `${state.lives}`;
+  if (levelEl) levelEl.textContent = `${state.level}`;
+  if (remainingEl) remainingEl.textContent = `${state.remaining}`;
   if (modeLabelEl) modeLabelEl.textContent = difficultyLabel(state.difficulty);
   if (pauseBtn) pauseBtn.textContent = state.paused ? t("resume") : t("pause");
 }
@@ -1048,14 +1338,31 @@ function launchBall() {
 }
 
 function sampleVerbs(count) {
-  if (count <= IRREGULAR_VERBS.length) {
-    return shuffleArray(IRREGULAR_VERBS).slice(0, count);
-  }
+  const targetCount = Math.max(0, Math.floor(count));
+  if (targetCount <= 0) return [];
+
+  const { verbCounts } = buildErrorBiasMaps();
+  const weightedVerb = (verb) => {
+    const mistakes = verbCounts.get(`${verb.base}`.toLowerCase()) || 0;
+    const bonus = Math.min(8, Math.sqrt(mistakes) * 1.7);
+    return 1 + bonus;
+  };
+
   const picked = [];
-  while (picked.length < count) {
-    picked.push(...shuffleArray(IRREGULAR_VERBS));
+  const uniquePool = [...IRREGULAR_VERBS];
+  while (picked.length < targetCount && uniquePool.length > 0) {
+    const weightedPool = uniquePool.map((verb) => ({ verb, weight: weightedVerb(verb) }));
+    const chosen = randomWeightedItem(weightedPool, "weight").verb;
+    picked.push(chosen);
+    const idx = uniquePool.findIndex((verb) => verb.base === chosen.base);
+    if (idx >= 0) uniquePool.splice(idx, 1);
   }
-  return picked.slice(0, count);
+
+  while (picked.length < targetCount) {
+    const weightedAll = IRREGULAR_VERBS.map((verb) => ({ verb, weight: weightedVerb(verb) }));
+    picked.push(randomWeightedItem(weightedAll, "weight").verb);
+  }
+  return picked;
 }
 
 function buildPatternOrder() {
@@ -1084,9 +1391,19 @@ function createBricks(level) {
   const layout = getBrickLayout();
 
   let activeCount = 0;
+  let minActiveCol = cols;
+  let maxActiveCol = -1;
+  let minActiveRow = rows;
+  let maxActiveRow = -1;
   for (let r = 0; r < rows; r += 1) {
     for (let c = 0; c < cols; c += 1) {
-      if (pattern.grid[r][c] !== ".") activeCount += 1;
+      if (pattern.grid[r][c] !== ".") {
+        activeCount += 1;
+        if (c < minActiveCol) minActiveCol = c;
+        if (c > maxActiveCol) maxActiveCol = c;
+        if (r < minActiveRow) minActiveRow = r;
+        if (r > maxActiveRow) maxActiveRow = r;
+      }
     }
   }
   if (activeCount <= 0) return [];
@@ -1107,22 +1424,32 @@ function createBricks(level) {
     state.isPortraitMode ? 17 : 19,
     state.isPortraitMode ? 28 : 30,
   );
+  const stepX = brickWidth + layout.gap;
+  const stepY = brickHeight + layout.gap;
+  const usedCols = maxActiveCol - minActiveCol + 1;
+  const usedRows = maxActiveRow - minActiveRow + 1;
+  const colOffset = (cols - usedCols) * 0.5 - minActiveCol;
+  const rowOffset = (rows - usedRows) * 0.5 - minActiveRow;
 
   const bricks = [];
+  const ampX = state.isPortraitMode ? PSYCHEDELIC_AMP_X_PORTRAIT : PSYCHEDELIC_AMP_X_LANDSCAPE;
+  const ampY = state.isPortraitMode ? PSYCHEDELIC_AMP_Y_PORTRAIT : PSYCHEDELIC_AMP_Y_LANDSCAPE;
   let activeIdx = 0;
   let verbIdx = 0;
   for (let r = 0; r < rows; r += 1) {
     for (let c = 0; c < cols; c += 1) {
       const code = pattern.grid[r][c];
       if (code === ".") continue;
-      const x = layout.sideMargin + c * (brickWidth + layout.gap);
-      const y = layout.top + r * (brickHeight + layout.gap);
+      const x = layout.sideMargin + (c + colOffset) * stepX;
+      const y = layout.top + (r + rowOffset) * stepY;
       const hasBonus = bonusSlots.has(activeIdx);
       const bonusType = hasBonus ? randomWeightedItem(BONUS_TYPES) : null;
       const isGolden = activeIdx === goldenSlot;
       bricks.push({
         x,
         y,
+        baseX: x,
+        baseY: y,
         w: brickWidth,
         h: brickHeight,
         code,
@@ -1132,6 +1459,12 @@ function createBricks(level) {
         verb: hasBonus ? bonusVerbs[verbIdx] : null,
         active: true,
         glow: 0,
+        row: r,
+        col: c,
+        motionPhase: Math.random() * Math.PI * 2,
+        motionSpeed: PSYCHEDELIC_WAVE_SPEED + (Math.random() - 0.5) * PSYCHEDELIC_WAVE_SPEED_VARIANCE,
+        motionAmpX: ampX,
+        motionAmpY: ampY,
       });
       if (hasBonus) verbIdx += 1;
       activeIdx += 1;
@@ -1162,7 +1495,7 @@ function resetLevel(level, keepStats = true) {
   state.basePaddleWidth = clamp(maxBase - (level - 1) * 3, 106, maxBase);
   paddle.width = state.basePaddleWidth;
   paddle.x = WORLD_WIDTH * 0.5 - paddle.width * 0.5;
-  paddle.y = WORLD_HEIGHT - 36;
+  paddle.y = getPaddleRestY();
   state.bricks = createBricks(level);
   state.remaining = state.bricks.length;
   state.fallingBonuses = [];
@@ -1180,6 +1513,8 @@ function resetLevel(level, keepStats = true) {
 }
 
 function showMainOverlay(title, text, buttonLabel, onClick) {
+  clearLevelAdvanceTimer();
+  stopChampionCelebration();
   showMenuView("home");
   overlayTitle.textContent = title;
   overlayText.textContent = text;
@@ -1197,10 +1532,129 @@ function hideMainOverlay() {
 }
 
 function showMenuView(view) {
-  if (!menuHomeView || !menuSettingsView || !menuLeaderboardView) return;
+  if (!menuHomeView || !menuSettingsView || !menuLeaderboardView || !menuLevelAdvanceView) return;
   menuHomeView.classList.toggle("hidden", view !== "home");
   menuSettingsView.classList.toggle("hidden", view !== "settings");
   menuLeaderboardView.classList.toggle("hidden", view !== "leaderboard");
+  menuLevelAdvanceView.classList.toggle("hidden", view !== "level-advance");
+}
+
+function showChampionOverlay() {
+  if (!championOverlay) return;
+  if (championTitleEl) championTitleEl.textContent = t("champion_message");
+  championOverlay.classList.remove("hidden");
+  championOverlay.classList.add("visible");
+}
+
+function hideChampionOverlay() {
+  if (!championOverlay) return;
+  championOverlay.classList.remove("visible");
+  championOverlay.classList.add("hidden");
+}
+
+function clearLevelAdvanceTimer() {
+  if (state.levelAdvanceTimerId == null) return;
+  clearTimeout(state.levelAdvanceTimerId);
+  state.levelAdvanceTimerId = null;
+}
+
+function clearChampionEndTimer() {
+  if (state.champion.endTimerId == null) return;
+  clearTimeout(state.champion.endTimerId);
+  state.champion.endTimerId = null;
+}
+
+function stopChampionCelebration() {
+  clearChampionEndTimer();
+  state.champion.active = false;
+  state.champion.timer = 0;
+  state.champion.spawnTimer = 0;
+  state.champion.drops = [];
+  hideChampionOverlay();
+}
+
+function spawnChampionEmojiDrop() {
+  state.champion.drops.push({
+    x: 14 + Math.random() * (WORLD_WIDTH - 28),
+    y: -26 - Math.random() * 22,
+    vy: 120 + Math.random() * 170,
+    vx: (Math.random() - 0.5) * 24,
+    spin: (Math.random() - 0.5) * 1.6,
+    angle: Math.random() * Math.PI * 2,
+    size: 20 + Math.random() * 22,
+    emoji: randomItem(CHAMPION_RAIN_EMOJIS),
+  });
+}
+
+function promptChampionNameEntry() {
+  state.pendingLeaderboardScore = { score: state.score, level: state.level };
+  state.returnToHomeAfterScoreSave = true;
+  showMainOverlay(t("leaderboard_title"), t("champion_name_prompt"), t("menu_start"), () => {
+    startNewGame();
+  });
+  showMenuView("leaderboard");
+  if (nameEntryLabel) nameEntryLabel.textContent = t("champion_name_label");
+  setNameEntryVisible(true);
+}
+
+function endChampionCelebration() {
+  stopChampionCelebration();
+  promptChampionNameEntry();
+}
+
+function startChampionCelebration() {
+  clearLevelAdvanceTimer();
+  stopChampionCelebration();
+  hideQuiz();
+  state.awaitingAnswer = false;
+  state.pendingQuestion = null;
+  state.running = false;
+  state.paused = false;
+  state.countdownActive = false;
+  state.roundCountdown = 0;
+  state.ballLocked = true;
+  state.returnToHomeAfterScoreSave = false;
+  state.champion.active = true;
+  state.champion.timer = CHAMPION_RAIN_DURATION;
+  state.champion.spawnTimer = 0;
+  state.champion.drops = [];
+  showChampionOverlay();
+  state.champion.endTimerId = setTimeout(() => {
+    endChampionCelebration();
+  }, CHAMPION_RAIN_DURATION * 1000);
+}
+
+function showLevelAdvanceOverlay(secondsLeft) {
+  showMenuView("level-advance");
+  if (nextLevelCountdownTextEl) {
+    nextLevelCountdownTextEl.textContent = t("level_next_countdown", { seconds: secondsLeft });
+  }
+  screenOverlay.classList.remove("hidden");
+  screenOverlay.classList.add("visible");
+}
+
+function startAutoNextLevelCountdown(seconds = 3) {
+  clearLevelAdvanceTimer();
+  let remaining = Math.max(1, Math.floor(seconds));
+  showLevelAdvanceOverlay(remaining);
+
+  const tick = () => {
+    remaining -= 1;
+    if (remaining <= 0) {
+      clearLevelAdvanceTimer();
+      hideMainOverlay();
+      resetLevel(state.level + 1, true);
+      state.running = true;
+      state.countdownActive = false;
+      state.roundCountdown = 0;
+      launchBall();
+      return;
+    }
+    showLevelAdvanceOverlay(remaining);
+    state.levelAdvanceTimerId = setTimeout(tick, 1000);
+  };
+
+  state.levelAdvanceTimerId = setTimeout(tick, 1000);
 }
 
 function showQuiz(question) {
@@ -1321,11 +1775,39 @@ function buildPromptPattern(verb, targetKey) {
   return `${slots[0]} / ${slots[1]} / ${slots[2]}`;
 }
 
-function createVerbQuestion(target = randomItem(IRREGULAR_VERBS)) {
-  const targetKey = randomItem(["past", "pp", "past", "pp", "base"]);
-  const correct = target[targetKey];
-  const wrongOther = getOtherWrongForm(target, targetKey, correct);
-  const wrongWeird = getConjugatedWeirdForm(target, [correct, wrongOther, target.base, target.past, target.pp]);
+function pickAdaptiveVerb() {
+  const { verbCounts } = buildErrorBiasMaps();
+  const weighted = IRREGULAR_VERBS.map((verb) => {
+    const mistakes = verbCounts.get(`${verb.base}`.toLowerCase()) || 0;
+    const bonus = Math.min(9, Math.sqrt(mistakes) * 1.9);
+    return { verb, weight: 1 + bonus };
+  });
+  return randomWeightedItem(weighted, "weight").verb;
+}
+
+function pickAdaptiveTargetKey(verbBase) {
+  const { targetCounts } = buildErrorBiasMaps();
+  const base = `${verbBase || ""}`.toLowerCase();
+  const candidates = [
+    { key: "base", weight: 1.0 },
+    { key: "past", weight: 2.0 },
+    { key: "pp", weight: 2.0 },
+  ];
+  for (let i = 0; i < candidates.length; i += 1) {
+    const candidate = candidates[i];
+    const count = targetCounts.get(`${base}:${candidate.key}`) || 0;
+    const bonus = Math.min(8, Math.sqrt(count) * 2.1);
+    candidate.weight += bonus;
+  }
+  return randomWeightedItem(candidates, "weight").key;
+}
+
+function createVerbQuestion(target = pickAdaptiveVerb(), forcedTargetKey = null) {
+  const verb = target && typeof target === "object" ? target : pickAdaptiveVerb();
+  const targetKey = normalizeTargetKey(forcedTargetKey) || pickAdaptiveTargetKey(verb.base);
+  const correct = verb[targetKey];
+  const wrongOther = getOtherWrongForm(verb, targetKey, correct);
+  const wrongWeird = getConjugatedWeirdForm(verb, [correct, wrongOther, verb.base, verb.past, verb.pp]);
 
   const rawChoices = [correct, wrongOther, wrongWeird];
   const uniqueChoices = [];
@@ -1333,7 +1815,7 @@ function createVerbQuestion(target = randomItem(IRREGULAR_VERBS)) {
     if (!uniqueChoices.includes(rawChoices[i])) uniqueChoices.push(rawChoices[i]);
   }
   while (uniqueChoices.length < 3) {
-    const extra = getConjugatedWeirdForm(target, uniqueChoices);
+    const extra = getConjugatedWeirdForm(verb, uniqueChoices);
     if (!uniqueChoices.includes(extra)) uniqueChoices.push(extra);
   }
   const choices = shuffleArray(uniqueChoices.slice(0, 3));
@@ -1341,12 +1823,14 @@ function createVerbQuestion(target = randomItem(IRREGULAR_VERBS)) {
   return {
     correct,
     choices,
-    prompt: buildPromptPattern(target, targetKey),
+    prompt: buildPromptPattern(verb, targetKey),
+    verbBase: `${verb.base}`,
+    targetKey,
   };
 }
 
 function createBonusQuestion(bonus) {
-  const target = bonus.verb || randomItem(IRREGULAR_VERBS);
+  const target = bonus.verb || pickAdaptiveVerb();
   return createVerbQuestion(target);
 }
 
@@ -1428,6 +1912,8 @@ function startNextBonusQuestion() {
     bonusName: bonusName(bonus.typeId, bonus.name),
     correct: question.correct,
     prompt: question.prompt,
+    verbBase: question.verbBase,
+    targetKey: question.targetKey,
     resolved: false,
   };
   state.awaitingAnswer = true;
@@ -1452,6 +1938,8 @@ function startNextQuestion() {
         kind: "super",
         correct: question.correct,
         prompt: question.prompt,
+        verbBase: question.verbBase,
+        targetKey: question.targetKey,
         step,
         total: SUPER_CHALLENGE_QUESTIONS,
         resolved: false,
@@ -1470,8 +1958,11 @@ function resolveAnswer(choice, reason = "answer") {
   if (state.pendingQuestion.resolved) return;
   state.pendingQuestion.resolved = true;
 
-  const { kind, bonusType, bonusName, correct, prompt } = state.pendingQuestion;
+  const { kind, bonusType, bonusName, correct, prompt, verbBase, targetKey } = state.pendingQuestion;
   const isCorrect = choice === correct;
+  if (!isCorrect && reason !== "timeout" && choice != null) {
+    recordAnswerError(prompt, choice, correct, { verbBase, targetKey });
+  }
   const buttons = quizChoices.querySelectorAll("button");
   buttons.forEach((btn) => {
     btn.disabled = true;
@@ -1582,7 +2073,9 @@ function destroyBrick(brick, axis, ball, options = {}) {
   state.remaining -= 1;
   const basePoints = brick.isGolden ? 220 : 70;
   state.score += basePoints + state.combo * 8;
-  state.combo += 1;
+  if (!fromProjectile) {
+    state.combo += 1;
+  }
   if (!fromProjectile && ball) {
     if (axis === "x") {
       ball.vx *= -1;
@@ -1616,10 +2109,26 @@ function persistPendingLeaderboardScore() {
   );
   state.pendingLeaderboardScore = null;
   setNameEntryVisible(false);
+  if (state.returnToHomeAfterScoreSave) {
+    state.returnToHomeAfterScoreSave = false;
+    showMenuView("home");
+    if (overlayTitle) overlayTitle.textContent = t("game_title");
+    if (overlayText) overlayText.textContent = t("menu_intro", { combo: COMBO_SUPER_THRESHOLD });
+    if (startBtn) {
+      startBtn.textContent = t("menu_start");
+      startBtn.onclick = () => {
+        startNewGame();
+      };
+    }
+    if (nameEntryLabel) nameEntryLabel.textContent = t("name_entry_label");
+  }
   refreshHud();
 }
 
 function startNewGame() {
+  clearLevelAdvanceTimer();
+  stopChampionCelebration();
+  state.returnToHomeAfterScoreSave = false;
   persistPendingLeaderboardScore();
   hideMainOverlay();
   resetLevel(1, false);
@@ -1629,8 +2138,11 @@ function startNewGame() {
 }
 
 function handleGameOver() {
+  clearLevelAdvanceTimer();
+  stopChampionCelebration();
   state.running = false;
   state.paused = false;
+  state.returnToHomeAfterScoreSave = false;
   const qualifies = isLeaderboardScore(state.score);
   const gameOverText = qualifies
     ? t("game_over_text_qualifies")
@@ -1640,6 +2152,7 @@ function handleGameOver() {
   });
   if (qualifies) {
     state.pendingLeaderboardScore = { score: state.score, level: state.level };
+    if (nameEntryLabel) nameEntryLabel.textContent = t("name_entry_label");
     setNameEntryVisible(true);
     showMenuView("leaderboard");
   } else {
@@ -1673,19 +2186,14 @@ function loseLife() {
 }
 
 function nextLevel() {
+  clearLevelAdvanceTimer();
+  if (state.level >= FINAL_LEVEL) {
+    startChampionCelebration();
+    return;
+  }
   state.running = false;
-  const nextPattern = localizePatternName(getPatternForLevel(state.level + 1).name);
-  showMainOverlay(
-    t("level_complete_title", { level: state.level }),
-    t("level_complete_text", { name: nextPattern }),
-    t("level_next"),
-    () => {
-      hideMainOverlay();
-      resetLevel(state.level + 1, true);
-      state.running = true;
-      startRoundCountdown(3);
-    },
-  );
+  state.paused = false;
+  startAutoNextLevelCountdown(3);
 }
 
 function detectBallBrickCollision(ball, brick) {
@@ -1929,12 +2437,53 @@ function updateParticles(delta) {
   }
 }
 
+function updateBrickMotion(delta) {
+  if (!state.psychedelicMode || state.bricks.length === 0) return;
+  state.brickMotionTime += delta;
+  const t = state.brickMotionTime;
+  for (let i = 0; i < state.bricks.length; i += 1) {
+    const brick = state.bricks[i];
+    if (!brick.active) continue;
+    if (typeof brick.baseX !== "number" || typeof brick.baseY !== "number") continue;
+
+    const rowWave = Math.sin(t * brick.motionSpeed + brick.row * 0.54 + brick.motionPhase);
+    const colWave = Math.cos(t * (brick.motionSpeed * 0.83) + brick.col * 0.46 + brick.motionPhase * 0.6);
+    brick.x = brick.baseX + rowWave * brick.motionAmpX;
+    brick.y = brick.baseY + colWave * brick.motionAmpY;
+  }
+}
+
+function updateChampionCelebration(delta) {
+  if (!state.champion.active) return;
+  state.champion.timer = Math.max(0, state.champion.timer - delta);
+  state.champion.spawnTimer -= delta;
+  while (state.champion.spawnTimer <= 0) {
+    spawnChampionEmojiDrop();
+    state.champion.spawnTimer += CHAMPION_RAIN_SPAWN_INTERVAL;
+  }
+
+  for (let i = state.champion.drops.length - 1; i >= 0; i -= 1) {
+    const drop = state.champion.drops[i];
+    drop.x += drop.vx * delta;
+    drop.y += drop.vy * delta;
+    drop.angle += drop.spin * delta;
+    if (drop.y > WORLD_HEIGHT + 42) {
+      state.champion.drops.splice(i, 1);
+    }
+  }
+}
+
 function update(delta) {
+  updateChampionCelebration(delta);
+
   if (!state.paused) {
     updatePaddle(delta);
     updateEffects(delta);
   }
   if (state.running && !state.paused) {
+    if (!state.awaitingAnswer) {
+      updateBrickMotion(delta);
+    }
     updateRoundCountdown(delta);
     if (!state.countdownActive) {
       updateBalls(delta);
@@ -2225,6 +2774,23 @@ function drawSuperBonusStatus() {
   ctx.fillText(text, x + 9, y + 12);
 }
 
+function drawChampionCelebration() {
+  if (!state.champion.active || state.champion.drops.length === 0) return;
+  ctx.save();
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  for (let i = 0; i < state.champion.drops.length; i += 1) {
+    const drop = state.champion.drops[i];
+    ctx.save();
+    ctx.translate(drop.x, drop.y);
+    ctx.rotate(drop.angle);
+    ctx.font = `${Math.round(drop.size)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+    ctx.fillText(drop.emoji, 0, 0);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
 function draw() {
   drawBackground();
   drawBricks();
@@ -2237,6 +2803,7 @@ function draw() {
   drawNotice();
   drawCombo();
   drawSuperBonusStatus();
+  drawChampionCelebration();
 }
 
 function loop(timestamp) {
@@ -2460,6 +3027,12 @@ difficultyButtons.forEach((btn) => {
   });
 });
 
+if (psychedelicToggleBtn) {
+  psychedelicToggleBtn.addEventListener("click", () => {
+    setPsychedelicMode(!state.psychedelicMode, true);
+  });
+}
+
 window.addEventListener("resize", () => {
   refreshResponsiveLayout(true);
 });
@@ -2487,6 +3060,7 @@ document.addEventListener("visibilitychange", () => {
 applyStaticTranslations();
 loadSettings();
 loadLeaderboard();
+loadErrorStats();
 showMainOverlay(
   t("game_title"),
   t("menu_intro", { combo: COMBO_SUPER_THRESHOLD }),
