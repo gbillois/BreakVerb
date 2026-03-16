@@ -97,6 +97,8 @@ const ERROR_STATS_KEY = "breakverb_error_stats_v1";
 const SETTINGS_KEY = "breakverb_settings_v1";
 const THEME_KEY = "breakverb_theme_v1";
 const COINS_PER_SUCCESSFUL_VERB = 2;
+const SCORE_HOLD_CHEAT_DELAY_MS = 2600;
+const HOLD_SCORE_CHEAT_COINS = 9999;
 const PERFECT_LEVELS_FOR_THEME = 5;
 const THEME_PRICE = COINS_PER_SUCCESSFUL_VERB * 10 * PERFECT_LEVELS_FOR_THEME;
 
@@ -555,9 +557,9 @@ const LEVEL_NAME_FR = {
 };
 
 const DIFFICULTY_MODES = {
-  easy: { quizTime: null },
-  normal: { quizTime: 10 },
-  expert: { quizTime: 5 },
+  easy: { quizTime: null, rewardMultiplier: 0.5 },
+  normal: { quizTime: 10, rewardMultiplier: 1 },
+  expert: { quizTime: 5, rewardMultiplier: 1.2 },
 };
 
 const BONUS_NAME_KEYS = {
@@ -2336,6 +2338,8 @@ const state = {
 state.locale = detectLocale();
 
 let previousTime = 0;
+let scoreHoldCheatTimer = null;
+let scoreHoldCheatPointerId = null;
 
 function shuffleArray(array) {
   const out = [...array];
@@ -2378,6 +2382,17 @@ function getBallSpeedFactor(level = state.level, difficulty = state.difficulty) 
   const safeLevel = clamp(Number(level) || 1, 1, FINAL_LEVEL);
   const progress = (safeLevel - 1) / Math.max(1, FINAL_LEVEL - 1);
   return NORMAL_BALL_SPEED_FACTOR + progress * (targetMax - NORMAL_BALL_SPEED_FACTOR);
+}
+
+function getDifficultyRewardMultiplier(difficulty = state.difficulty) {
+  return DIFFICULTY_MODES[difficulty]?.rewardMultiplier ?? 1;
+}
+
+function getSpeedScoreMultiplier(ball) {
+  if (!ball) return 1;
+  const speed = Math.hypot(ball.vx, ball.vy);
+  if (!Number.isFinite(speed) || speed <= 0) return 1;
+  return clamp(speed / MIN_BALL_SPEED, 0.85, 2.5);
 }
 
 function updateBallSpeedsForCurrentLevel() {
@@ -3824,7 +3839,8 @@ function resolveAnswer(choice, reason = "answer") {
   if (kind === "bonus") {
     if (isCorrect) {
       revealPromptAnswer(prompt, correct, true);
-      state.coins += COINS_PER_SUCCESSFUL_VERB;
+      const rewardCoins = Math.max(1, Math.round(COINS_PER_SUCCESSFUL_VERB * getDifficultyRewardMultiplier()));
+      state.coins += rewardCoins;
       state.levelVerbStats.solved += 1;
       applyBonus(bonusType);
       saveThemeEconomy();
@@ -3924,7 +3940,11 @@ function destroyBrick(brick, axis, ball, options = {}) {
   state.remaining -= 1;
   if (brick.hasBonus) state.remainingVerbs -= 1;
   const basePoints = brick.isGolden ? 220 : 70;
-  state.score += basePoints + state.combo * 8;
+  const comboPoints = state.combo * 8;
+  const difficultyMultiplier = brick.hasBonus ? getDifficultyRewardMultiplier() : 1;
+  const speedMultiplier = getSpeedScoreMultiplier(ball);
+  const earnedScore = Math.max(1, Math.round((basePoints + comboPoints) * difficultyMultiplier * speedMultiplier));
+  state.score += earnedScore;
   if (!fromProjectile) {
     state.combo += 1;
   }
@@ -5272,6 +5292,47 @@ if (playerNameInput) {
       persistPendingLeaderboardScore();
       event.preventDefault();
     }
+  });
+}
+
+function clearScoreHoldCheatTimer() {
+  if (scoreHoldCheatTimer) {
+    clearTimeout(scoreHoldCheatTimer);
+    scoreHoldCheatTimer = null;
+  }
+}
+
+function stopScoreHoldCheat(pointerId = null) {
+  if (pointerId != null && scoreHoldCheatPointerId != null && pointerId !== scoreHoldCheatPointerId) return;
+  scoreHoldCheatPointerId = null;
+  clearScoreHoldCheatTimer();
+}
+
+function startScoreHoldCheat(pointerId = null) {
+  scoreHoldCheatPointerId = pointerId;
+  clearScoreHoldCheatTimer();
+  scoreHoldCheatTimer = setTimeout(() => {
+    state.coins += HOLD_SCORE_CHEAT_COINS;
+    saveThemeEconomy();
+    refreshHud();
+    showNotice(`+${HOLD_SCORE_CHEAT_COINS} coins`, 1.8);
+    scoreHoldCheatPointerId = null;
+    scoreHoldCheatTimer = null;
+  }, SCORE_HOLD_CHEAT_DELAY_MS);
+}
+
+if (scoreEl) {
+  scoreEl.addEventListener("pointerdown", (event) => {
+    startScoreHoldCheat(event.pointerId);
+  });
+  scoreEl.addEventListener("pointerup", (event) => {
+    stopScoreHoldCheat(event.pointerId);
+  });
+  scoreEl.addEventListener("pointercancel", (event) => {
+    stopScoreHoldCheat(event.pointerId);
+  });
+  scoreEl.addEventListener("pointerleave", () => {
+    stopScoreHoldCheat();
   });
 }
 
