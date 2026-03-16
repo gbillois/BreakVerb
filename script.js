@@ -73,6 +73,7 @@ const BONUS_BRICK_RATIO = 0.20;
 const NORMAL_BALL_SPEED_FACTOR = 0.62;
 const NORMAL_BALL_SPEED_FACTOR_MAX = 1.0;
 const EXPERT_BALL_SPEED_FACTOR_MAX = 1.2;
+const LANDSCAPE_BALL_SPEED_BOOST = 0.15;
 const SLOW_BALL_SPEED_FACTOR = 0.52;
 const MIN_BALL_SPEED = 150;
 const COMBO_SUPER_THRESHOLD = 40;
@@ -2373,14 +2374,15 @@ function clamp(value, min, max) {
 }
 
 function getBallSpeedFactor(level = state.level, difficulty = state.difficulty) {
-  if (difficulty === "easy") return NORMAL_BALL_SPEED_FACTOR;
+  const landscapeBoost = state.isPortraitMode ? 0 : LANDSCAPE_BALL_SPEED_BOOST;
+  if (difficulty === "easy") return NORMAL_BALL_SPEED_FACTOR + landscapeBoost;
 
   const targetMax = difficulty === "expert"
     ? EXPERT_BALL_SPEED_FACTOR_MAX
     : NORMAL_BALL_SPEED_FACTOR_MAX;
   const safeLevel = clamp(Number(level) || 1, 1, FINAL_LEVEL);
   const progress = (safeLevel - 1) / Math.max(1, FINAL_LEVEL - 1);
-  return NORMAL_BALL_SPEED_FACTOR + progress * (targetMax - NORMAL_BALL_SPEED_FACTOR);
+  return NORMAL_BALL_SPEED_FACTOR + progress * (targetMax - NORMAL_BALL_SPEED_FACTOR) + landscapeBoost;
 }
 
 function getDifficultyRewardMultiplier(difficulty = state.difficulty) {
