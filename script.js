@@ -100,7 +100,7 @@ const THEME_KEY = "breakverb_theme_v1";
 const COINS_PER_SUCCESSFUL_VERB = 2;
 const SCORE_HOLD_CHEAT_DELAY_MS = 2600;
 const HOLD_SCORE_CHEAT_COINS = 9999;
-const THEME_PRICE = COINS_PER_SUCCESSFUL_VERB * 10 * 5;
+const THEME_PRICE = 50;
 
 const THEMES = {
   modern_english: {
