@@ -68,6 +68,9 @@ const PORTRAIT_WORLD = { width: 600, height: 960 };
 let WORLD_WIDTH = LANDSCAPE_WORLD.width;
 let WORLD_HEIGHT = LANDSCAPE_WORLD.height;
 const BONUS_BRICK_RATIO = 0.20;
+const NORMAL_BALL_SPEED_FACTOR = 0.76;
+const SLOW_BALL_SPEED_FACTOR = 0.62;
+const MIN_BALL_SPEED = 150;
 const COMBO_SUPER_THRESHOLD = 40;
 const SUPER_CHALLENGE_QUESTIONS = 3;
 const SUPER_CANNON_DURATION = 5;
@@ -2242,10 +2245,10 @@ function createBall(x, y, vx = 260, vy = -320) {
   return {
     x,
     y,
-    vx,
-    vy,
+    vx: vx * NORMAL_BALL_SPEED_FACTOR,
+    vy: vy * NORMAL_BALL_SPEED_FACTOR,
     radius: 9,
-    maxSpeed: state.isPortraitMode ? 900 : 860,
+    maxSpeed: (state.isPortraitMode ? 900 : 860) * NORMAL_BALL_SPEED_FACTOR,
   };
 }
 
@@ -2956,7 +2959,7 @@ function updateWorldBounds(portraitMode, preserveObjects = true) {
       ball.y *= scaleY;
       ball.vx *= scaleX;
       ball.vy *= scaleY;
-      ball.maxSpeed = portraitMode ? 900 : 860;
+      ball.maxSpeed = (portraitMode ? 900 : 860) * NORMAL_BALL_SPEED_FACTOR;
       stabilizeBall(ball);
     }
 
@@ -3014,11 +3017,11 @@ function stabilizeBall(ball) {
     speed = ball.maxSpeed;
   }
 
-  if (speed < 190) {
-    const factor = 190 / speed;
+  if (speed < MIN_BALL_SPEED) {
+    const factor = MIN_BALL_SPEED / speed;
     ball.vx *= factor;
     ball.vy *= factor;
-    speed = 190;
+    speed = MIN_BALL_SPEED;
   }
 
   const minVy = Math.max(110, speed * 0.24);
@@ -3081,8 +3084,8 @@ function launchBall() {
   state.ballLocked = false;
   const ball = state.balls[0];
   const side = Math.random() < 0.5 ? -1 : 1;
-  ball.vx = side * (240 + state.level * 16);
-  ball.vy = -(330 + state.level * 20);
+  ball.vx = side * (240 + state.level * 16) * NORMAL_BALL_SPEED_FACTOR;
+  ball.vy = -(330 + state.level * 20) * NORMAL_BALL_SPEED_FACTOR;
   stabilizeBall(ball);
 }
 
@@ -3610,11 +3613,11 @@ function applyBonus(typeId) {
   } else if (typeId === "slow_ball") {
     for (let i = 0; i < state.balls.length; i += 1) {
       const ball = state.balls[i];
-      ball.vx *= 0.76;
-      ball.vy *= 0.76;
+      ball.vx *= SLOW_BALL_SPEED_FACTOR;
+      ball.vy *= SLOW_BALL_SPEED_FACTOR;
       const speed = Math.hypot(ball.vx, ball.vy);
-      if (speed < 180) {
-        const factor = 180 / speed;
+      if (speed < MIN_BALL_SPEED * SLOW_BALL_SPEED_FACTOR) {
+        const factor = (MIN_BALL_SPEED * SLOW_BALL_SPEED_FACTOR) / speed;
         ball.vx *= factor;
         ball.vy *= factor;
       }
