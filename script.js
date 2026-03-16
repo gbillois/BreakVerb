@@ -57,6 +57,11 @@ const quizFeedback = document.getElementById("quizFeedback");
 const championOverlay = document.getElementById("championOverlay");
 const championTitleEl = document.getElementById("championTitle");
 const arenaWrap = document.querySelector(".arena-wrap");
+const openShopBtn = document.getElementById("openShopBtn");
+const menuShopView = document.getElementById("menuShopView");
+const shopTitleEl = document.getElementById("shopTitle");
+const shopGrid = document.getElementById("shopGrid");
+const backFromShopBtn = document.getElementById("backFromShopBtn");
 
 const LANDSCAPE_WORLD = { width: 960, height: 540 };
 const PORTRAIT_WORLD = { width: 600, height: 960 };
@@ -83,6 +88,222 @@ const CHAMPION_RAIN_SPAWN_INTERVAL = 0.06;
 const LEADERBOARD_KEY = "breakverb_leaderboard_v1";
 const ERROR_STATS_KEY = "breakverb_error_stats_v1";
 const SETTINGS_KEY = "breakverb_settings_v1";
+const THEME_KEY = "breakverb_theme_v1";
+
+const THEMES = {
+  modern_english: {
+    id: "modern_english",
+    name_fr: "Modern English",
+    name_en: "Modern English",
+    desc_fr: "Le thème classique avec les emblèmes des pays anglophones.",
+    desc_en: "Classic theme with English-speaking countries emblems.",
+    price: 0,
+    unlocked: true,
+    preview: "\u{1F1EC}\u{1F1E7}",
+    bg: { top: "#0b243b", mid: "#13415a", bot: "#1a5c73" },
+    bgLines: { color: "#ffffff", alpha: 0.08, count: 22 },
+    paddle: { top: "#7fe3ff", bot: "#24a6dd", stroke: "rgba(255,255,255,0.5)" },
+    ball: { center: "#ffffff", edge: "#ffc46a", glow: "#ffc46a", glowAlpha: 0.2 },
+    brickColors: {
+      R: { h: 2, s: 82, l: 54, text: "#fff1f1" },
+      W: { h: 42, s: 28, l: 87, text: "#142136" },
+      B: { h: 212, s: 72, l: 49, text: "#eef7ff" },
+      Y: { h: 45, s: 90, l: 56, text: "#2a200a" },
+      G: { h: 164, s: 30, l: 44, text: "#f3fff8" },
+      D: { h: 24, s: 82, l: 53, text: "#fff9eb" },
+    },
+    particle: { colors: ["#ffc46a", "#7fe3ff", "#ff8e42", "#ffd36b"] },
+    fire: { tail: "rgba(255,130,70,0.7)", headCenter: "#fff9da", headEdge: "#ff7a39", barrel: "#2d405f", tip: "#ffb04f" },
+    cannon: { body: "#2d405f", tip: "#ffb04f" },
+    ambient: null,
+    cssCanvasBg: "linear-gradient(180deg, #111f49, #122b5a 34%, #173b6c)",
+    cssBgDeep: "#1a1644",
+    cssBgMid: "#2d2a68",
+  },
+  retro_pixel: {
+    id: "retro_pixel",
+    name_fr: "Rétro Pixel Art",
+    name_en: "Retro Pixel Art",
+    desc_fr: "Tout est en pixel art ! Nostalgie des années 80.",
+    desc_en: "Everything in pixel art! 80s nostalgia.",
+    price: 0,
+    unlocked: true,
+    preview: "\u{1F579}\u{FE0F}",
+    bg: { top: "#0a0a1a", mid: "#14142b", bot: "#1e1e3c" },
+    bgLines: { color: "#00ff88", alpha: 0.05, count: 16 },
+    paddle: { top: "#00ff88", bot: "#008844", stroke: "rgba(0,255,136,0.6)" },
+    ball: { center: "#ffffff", edge: "#00ff88", glow: "#00ff88", glowAlpha: 0.3 },
+    brickColors: {
+      R: { h: 0, s: 100, l: 50, text: "#ffffff" },
+      W: { h: 0, s: 0, l: 85, text: "#000000" },
+      B: { h: 240, s: 100, l: 60, text: "#ffffff" },
+      Y: { h: 60, s: 100, l: 50, text: "#000000" },
+      G: { h: 120, s: 100, l: 40, text: "#ffffff" },
+      D: { h: 30, s: 100, l: 50, text: "#ffffff" },
+    },
+    particle: { colors: ["#00ff88", "#ff0055", "#ffff00", "#00aaff"] },
+    fire: { tail: "rgba(0,255,136,0.7)", headCenter: "#ffffff", headEdge: "#00ff88", barrel: "#333366", tip: "#00ff88" },
+    cannon: { body: "#333366", tip: "#00ff88" },
+    ambient: "scanlines",
+    pixelMode: true,
+    cssCanvasBg: "linear-gradient(180deg, #0a0a1a, #14142b 34%, #1e1e3c)",
+    cssBgDeep: "#0a0a1a",
+    cssBgMid: "#14142b",
+  },
+  futuristic: {
+    id: "futuristic",
+    name_fr: "Futuristic",
+    name_en: "Futuristic",
+    desc_fr: "Style néon et glow. La raquette est un vaisseau spatial !",
+    desc_en: "Neon glow style. The paddle is a spaceship!",
+    price: 0,
+    unlocked: true,
+    preview: "\u{1F680}",
+    bg: { top: "#050515", mid: "#0a0a2e", bot: "#0f0f3f" },
+    bgLines: { color: "#00ffff", alpha: 0.04, count: 18 },
+    paddle: { top: "#00ffff", bot: "#0066ff", stroke: "rgba(0,255,255,0.8)", isShip: true },
+    ball: { center: "#ffffff", edge: "#ff00ff", glow: "#ff00ff", glowAlpha: 0.4 },
+    brickColors: {
+      R: { h: 340, s: 100, l: 55, text: "#ffe0f0" },
+      W: { h: 180, s: 20, l: 80, text: "#0a0a2e" },
+      B: { h: 220, s: 100, l: 60, text: "#e0f0ff" },
+      Y: { h: 55, s: 100, l: 55, text: "#1a1a0a" },
+      G: { h: 150, s: 100, l: 45, text: "#e0fff0" },
+      D: { h: 270, s: 80, l: 55, text: "#f0e0ff" },
+    },
+    particle: { colors: ["#00ffff", "#ff00ff", "#ffff00", "#00ff88"] },
+    fire: { tail: "rgba(0,255,255,0.7)", headCenter: "#ffffff", headEdge: "#00ffff", barrel: "#1a1a4e", tip: "#00ffff" },
+    cannon: { body: "#1a1a4e", tip: "#00ffff" },
+    ambient: "stars",
+    cssCanvasBg: "linear-gradient(180deg, #050515, #0a0a2e 34%, #0f0f3f)",
+    cssBgDeep: "#050515",
+    cssBgMid: "#0a0a2e",
+  },
+  bright_spring: {
+    id: "bright_spring",
+    name_fr: "Bright Spring",
+    name_en: "Bright Spring",
+    desc_fr: "Couleurs printanières, raquette fleurie et petits oiseaux !",
+    desc_en: "Spring colors, flower paddle and little birds!",
+    price: 0,
+    unlocked: true,
+    preview: "\u{1F338}",
+    bg: { top: "#87ceeb", mid: "#98e4c6", bot: "#c8f5a0" },
+    bgLines: { color: "#ffffff", alpha: 0.12, count: 12 },
+    paddle: { top: "#ff8fbf", bot: "#e05090", stroke: "rgba(255,255,255,0.6)", hasFlowers: true },
+    ball: { center: "#ffffff", edge: "#ffcc00", glow: "#ffcc00", glowAlpha: 0.25 },
+    brickColors: {
+      R: { h: 350, s: 75, l: 60, text: "#ffffff" },
+      W: { h: 60, s: 30, l: 92, text: "#3a3020" },
+      B: { h: 200, s: 60, l: 60, text: "#ffffff" },
+      Y: { h: 50, s: 85, l: 60, text: "#3a3020" },
+      G: { h: 140, s: 55, l: 50, text: "#ffffff" },
+      D: { h: 30, s: 70, l: 60, text: "#ffffff" },
+    },
+    particle: { colors: ["#ff8fbf", "#ffcc00", "#98e4c6", "#ff6b9d"] },
+    fire: { tail: "rgba(255,143,191,0.7)", headCenter: "#ffffff", headEdge: "#ff8fbf", barrel: "#7a4060", tip: "#ff8fbf" },
+    cannon: { body: "#7a4060", tip: "#ff8fbf" },
+    ambient: "birds",
+    darkText: true,
+    cssCanvasBg: "linear-gradient(180deg, #87ceeb, #98e4c6 34%, #c8f5a0)",
+    cssBgDeep: "#2a6050",
+    cssBgMid: "#3a8070",
+  },
+  snowy_winter: {
+    id: "snowy_winter",
+    name_fr: "Snowy Winter",
+    name_en: "Snowy Winter",
+    desc_fr: "Neige qui tombe et s'accumule en bas de l'écran !",
+    desc_en: "Falling snow that piles up at the bottom!",
+    price: 0,
+    unlocked: true,
+    preview: "\u{2744}\u{FE0F}",
+    bg: { top: "#b0c4de", mid: "#8aa4c0", bot: "#6a86a8" },
+    bgLines: { color: "#ffffff", alpha: 0.06, count: 10 },
+    paddle: { top: "#e8f0ff", bot: "#a0b8d0", stroke: "rgba(255,255,255,0.7)" },
+    ball: { center: "#ffffff", edge: "#a8d8ff", glow: "#a8d8ff", glowAlpha: 0.3 },
+    brickColors: {
+      R: { h: 0, s: 55, l: 55, text: "#fff0f0" },
+      W: { h: 210, s: 15, l: 90, text: "#2a3040" },
+      B: { h: 215, s: 50, l: 55, text: "#e8f4ff" },
+      Y: { h: 45, s: 50, l: 60, text: "#3a3020" },
+      G: { h: 160, s: 30, l: 50, text: "#e8fff0" },
+      D: { h: 200, s: 30, l: 60, text: "#f0f8ff" },
+    },
+    particle: { colors: ["#e8f0ff", "#a8d8ff", "#c0d8f0", "#ffffff"] },
+    fire: { tail: "rgba(168,216,255,0.7)", headCenter: "#ffffff", headEdge: "#a8d8ff", barrel: "#506880", tip: "#a8d8ff" },
+    cannon: { body: "#506880", tip: "#a8d8ff" },
+    ambient: "snow",
+    cssCanvasBg: "linear-gradient(180deg, #b0c4de, #8aa4c0 34%, #6a86a8)",
+    cssBgDeep: "#2a3a50",
+    cssBgMid: "#3a4a60",
+  },
+  summer_vibes: {
+    id: "summer_vibes",
+    name_fr: "Summer Vibes",
+    name_en: "Summer Vibes",
+    desc_fr: "Couleurs chaudes, effet d'eau en bas ! La raquette est un matelas gonflable !",
+    desc_en: "Warm colors, water effect at the bottom! The paddle is an inflatable mattress!",
+    price: 0,
+    unlocked: true,
+    preview: "\u{1F3D6}\u{FE0F}",
+    bg: { top: "#ff9a4a", mid: "#ff7043", bot: "#1a8ccc" },
+    bgLines: { color: "#ffffff", alpha: 0.06, count: 8 },
+    paddle: { top: "#ff6b9d", bot: "#ff4081", stroke: "rgba(255,255,255,0.5)", isRaft: true },
+    ball: { center: "#ffffff", edge: "#ffdd00", glow: "#ffdd00", glowAlpha: 0.3 },
+    brickColors: {
+      R: { h: 5, s: 85, l: 58, text: "#ffffff" },
+      W: { h: 45, s: 40, l: 90, text: "#3a3020" },
+      B: { h: 195, s: 80, l: 50, text: "#e8f8ff" },
+      Y: { h: 45, s: 95, l: 55, text: "#3a3020" },
+      G: { h: 155, s: 60, l: 45, text: "#e8fff0" },
+      D: { h: 20, s: 85, l: 58, text: "#ffffff" },
+    },
+    particle: { colors: ["#ff9a4a", "#ffdd00", "#ff6b9d", "#1a8ccc"] },
+    fire: { tail: "rgba(255,154,74,0.7)", headCenter: "#ffffff", headEdge: "#ff9a4a", barrel: "#8a4a2a", tip: "#ff9a4a" },
+    cannon: { body: "#8a4a2a", tip: "#ff9a4a" },
+    ambient: "water",
+    cssCanvasBg: "linear-gradient(180deg, #ff9a4a, #ff7043 34%, #1a8ccc)",
+    cssBgDeep: "#8a3a1a",
+    cssBgMid: "#aa5a2a",
+  },
+  cosy_autumn: {
+    id: "cosy_autumn",
+    name_fr: "Cosy Autumn",
+    name_en: "Cosy Autumn",
+    desc_fr: "Tons bruns et feuilles qui virevoltent dans l'air.",
+    desc_en: "Brown tones with leaves swirling in the air.",
+    price: 0,
+    unlocked: true,
+    preview: "\u{1F342}",
+    bg: { top: "#5a3a20", mid: "#6b4a2a", bot: "#4a6030" },
+    bgLines: { color: "#dda050", alpha: 0.06, count: 14 },
+    paddle: { top: "#d4884a", bot: "#a05a28", stroke: "rgba(255,220,160,0.5)" },
+    ball: { center: "#ffffff", edge: "#ffaa44", glow: "#ffaa44", glowAlpha: 0.25 },
+    brickColors: {
+      R: { h: 10, s: 65, l: 48, text: "#ffe8e0" },
+      W: { h: 35, s: 30, l: 82, text: "#3a2a1a" },
+      B: { h: 30, s: 50, l: 45, text: "#fff0e0" },
+      Y: { h: 42, s: 75, l: 52, text: "#3a2a10" },
+      G: { h: 95, s: 35, l: 40, text: "#f0ffe8" },
+      D: { h: 25, s: 60, l: 50, text: "#fff0e0" },
+    },
+    particle: { colors: ["#d4884a", "#cc6633", "#ff9944", "#88aa44"] },
+    fire: { tail: "rgba(212,136,74,0.7)", headCenter: "#ffffff", headEdge: "#d4884a", barrel: "#5a3a28", tip: "#d4884a" },
+    cannon: { body: "#5a3a28", tip: "#d4884a" },
+    ambient: "leaves",
+    cssCanvasBg: "linear-gradient(180deg, #5a3a20, #6b4a2a 34%, #4a6030)",
+    cssBgDeep: "#2a1a10",
+    cssBgMid: "#3a2a18",
+  },
+};
+
+let activeThemeId = "modern_english";
+function getTheme() { return THEMES[activeThemeId] || THEMES.modern_english; }
+
+const ambientParticles = [];
+const snowPiles = [];
+let snowPilesInitialized = false;
 const MAX_ERROR_STATS_ROWS = 15;
 const MAX_ERROR_STATS_STORE = 120;
 const CHAMPION_RAIN_EMOJIS = [
@@ -181,6 +402,11 @@ const I18N = {
     brand_player: "HERO",
     gold_label: "GOLD",
     super_points: "SUPER BONUS",
+    menu_shop: "Boutique",
+    shop_title: "Boutique de thèmes",
+    shop_current: "Actif",
+    shop_select: "Choisir",
+    shop_back: "Retour",
   },
   en: {
     document_title: "VerbBreaker - Break the verbs to win!",
@@ -266,6 +492,11 @@ const I18N = {
     brand_player: "HERO",
     gold_label: "GOLD",
     super_points: "SUPER BONUS",
+    menu_shop: "Shop",
+    shop_title: "Theme Shop",
+    shop_current: "Active",
+    shop_select: "Select",
+    shop_back: "Back",
   },
 };
 
@@ -831,6 +1062,9 @@ function applyStaticTranslations() {
   if (backFromLeaderboardBtn) backFromLeaderboardBtn.textContent = t("menu_back");
   if (playFromLeaderboardBtn) playFromLeaderboardBtn.textContent = t("menu_start");
 
+  if (openShopBtn) openShopBtn.textContent = t("menu_shop");
+  if (shopTitleEl) shopTitleEl.textContent = t("shop_title");
+  if (backFromShopBtn) backFromShopBtn.textContent = t("shop_back");
   if (settingsTitleEl) settingsTitleEl.textContent = t("menu_settings");
   if (difficultyTitleEl) difficultyTitleEl.textContent = t("difficulty_title");
   if (psychedelicTitleEl) psychedelicTitleEl.textContent = t("psychedelic_title");
@@ -917,6 +1151,64 @@ function loadSettings() {
   state.psychedelicMode = Boolean(settings?.psychedelicMode);
   renderDifficultyButtons();
   renderPsychedelicButton();
+}
+
+function loadTheme() {
+  const saved = readJsonStorage(THEME_KEY, "modern_english");
+  if (THEMES[saved]) {
+    activeThemeId = saved;
+  } else {
+    activeThemeId = "modern_english";
+  }
+  applyThemeCSS();
+}
+
+function saveTheme() {
+  writeJsonStorage(THEME_KEY, activeThemeId);
+}
+
+function applyThemeCSS() {
+  const theme = getTheme();
+  const root = document.documentElement;
+  root.style.setProperty("--bg-deep", theme.cssBgDeep);
+  root.style.setProperty("--bg-mid", theme.cssBgMid);
+  canvas.style.background = theme.cssCanvasBg;
+  ambientParticles.length = 0;
+  snowPilesInitialized = false;
+}
+
+function setActiveTheme(themeId) {
+  if (!THEMES[themeId]) return;
+  activeThemeId = themeId;
+  applyThemeCSS();
+  saveTheme();
+  renderShopGrid();
+}
+
+function renderShopGrid() {
+  if (!shopGrid) return;
+  shopGrid.innerHTML = "";
+  const themeIds = Object.keys(THEMES);
+  for (let i = 0; i < themeIds.length; i++) {
+    const themeId = themeIds[i];
+    const theme = THEMES[themeId];
+    const isActive = themeId === activeThemeId;
+    const card = document.createElement("div");
+    card.className = "shop-card" + (isActive ? " active" : "");
+    const nameKey = state.locale === "fr" ? "name_fr" : "name_en";
+    const descKey = state.locale === "fr" ? "desc_fr" : "desc_en";
+    card.innerHTML =
+      '<div class="shop-card-preview">' + theme.preview + '</div>' +
+      '<p class="shop-card-name">' + theme[nameKey] + '</p>' +
+      '<p class="shop-card-desc">' + theme[descKey] + '</p>' +
+      '<button class="shop-card-btn' + (isActive ? ' current' : '') + '" type="button">' +
+      (isActive ? t("shop_current") : t("shop_select")) + '</button>';
+    const btn = card.querySelector(".shop-card-btn");
+    if (!isActive) {
+      btn.addEventListener("click", () => { setActiveTheme(themeId); });
+    }
+    shopGrid.appendChild(card);
+  }
 }
 
 function normalizeLeaderboardRows(rows) {
@@ -1556,6 +1848,7 @@ function showMenuView(view) {
   menuHomeView.classList.toggle("hidden", view !== "home");
   menuSettingsView.classList.toggle("hidden", view !== "settings");
   menuLeaderboardView.classList.toggle("hidden", view !== "leaderboard");
+  if (menuShopView) menuShopView.classList.toggle("hidden", view !== "shop");
   menuLevelAdvanceView.classList.toggle("hidden", view !== "level-advance");
 }
 
@@ -2105,7 +2398,8 @@ function destroyBrick(brick, axis, ball, options = {}) {
     }
     stabilizeBall(ball);
   }
-  spawnBurst(brick.x + brick.w * 0.5, brick.y + brick.h * 0.5, brick.isGolden ? "#ffd56a" : "#6bf8a2");
+  const burstColors = getTheme().particle.colors;
+  spawnBurst(brick.x + brick.w * 0.5, brick.y + brick.h * 0.5, brick.isGolden ? "#ffd56a" : burstColors[Math.floor(Math.random() * burstColors.length)]);
   maybeDropBonus(brick);
   if (brick.isGolden && state.effects.superCannonTimer <= 0) {
     queueSuperChallenge("golden");
@@ -2514,6 +2808,7 @@ function update(delta) {
   }
   updateQuizTimer(delta);
   if (!state.paused) updateParticles(delta);
+  updateAmbientParticles(delta);
 
   if (state.running && !state.paused && state.remainingVerbs <= 0 && !state.awaitingAnswer) {
     nextLevel();
@@ -2525,18 +2820,19 @@ function update(delta) {
 }
 
 function drawBackground() {
+  const theme = getTheme();
   const gradient = ctx.createLinearGradient(0, 0, 0, WORLD_HEIGHT);
-  gradient.addColorStop(0, "#0b243b");
-  gradient.addColorStop(0.55, "#13415a");
-  gradient.addColorStop(1, "#1a5c73");
+  gradient.addColorStop(0, theme.bg.top);
+  gradient.addColorStop(0.55, theme.bg.mid);
+  gradient.addColorStop(1, theme.bg.bot);
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
   ctx.save();
-  ctx.globalAlpha = 0.08;
-  ctx.strokeStyle = "#ffffff";
+  ctx.globalAlpha = theme.bgLines.alpha;
+  ctx.strokeStyle = theme.bgLines.color;
   ctx.lineWidth = 1;
-  for (let i = 0; i < 22; i += 1) {
+  for (let i = 0; i < theme.bgLines.count; i += 1) {
     const x = ((i * 43 + performance.now() * 0.02) % (WORLD_WIDTH + 80)) - 40;
     ctx.beginPath();
     ctx.moveTo(x, 0);
@@ -2555,13 +2851,16 @@ function fitBrickLabel(text, maxWidth) {
 }
 
 function drawBricks() {
+  const theme = getTheme();
+  const themeColors = theme.brickColors || BRICK_COLORS;
   for (let i = 0; i < state.bricks.length; i += 1) {
     const brick = state.bricks[i];
     if (!brick.active) continue;
-    const palette = BRICK_COLORS[brick.code] || BRICK_COLORS.D;
+    const palette = themeColors[brick.code] || themeColors.D;
     const glow = brick.glow * 0.6;
+    const brickRadius = theme.pixelMode ? 0 : 6;
 
-    roundRect(brick.x, brick.y, brick.w, brick.h, 6);
+    roundRect(brick.x, brick.y, brick.w, brick.h, brickRadius);
     const grad = ctx.createLinearGradient(brick.x, brick.y, brick.x, brick.y + brick.h);
     if (brick.isGolden) {
       grad.addColorStop(0, `hsla(46, 95%, ${68 + glow * 18}%, 1)`);
@@ -2576,6 +2875,17 @@ function drawBricks() {
     ctx.strokeStyle = brick.isGolden ? "rgba(255,238,178,0.88)" : "rgba(255,255,255,0.3)";
     ctx.lineWidth = 1;
     ctx.stroke();
+
+    if (theme.id === "futuristic" && !brick.isGolden) {
+      ctx.save();
+      ctx.shadowColor = `hsla(${palette.h}, 100%, 60%, 0.6)`;
+      ctx.shadowBlur = 8;
+      ctx.strokeStyle = `hsla(${palette.h}, 100%, 70%, 0.5)`;
+      ctx.lineWidth = 1;
+      roundRect(brick.x, brick.y, brick.w, brick.h, brickRadius);
+      ctx.stroke();
+      ctx.restore();
+    }
 
     if (brick.verb) {
       ctx.font = `${brick.h < 23 ? 700 : 800} ${brick.h < 23 ? 10 : 11}px Nunito, Trebuchet MS, sans-serif`;
@@ -2604,33 +2914,116 @@ function drawBricks() {
 }
 
 function drawPaddle() {
-  roundRect(paddle.x, paddle.y, paddle.width, paddle.height, 9);
-  const grad = ctx.createLinearGradient(paddle.x, paddle.y, paddle.x, paddle.y + paddle.height);
-  grad.addColorStop(0, "#7fe3ff");
-  grad.addColorStop(1, "#24a6dd");
-  ctx.fillStyle = grad;
-  ctx.fill();
-  ctx.strokeStyle = "rgba(255,255,255,0.5)";
-  ctx.stroke();
+  const theme = getTheme();
+  const px = paddle.x;
+  const py = paddle.y;
+  const pw = paddle.width;
+  const ph = paddle.height;
+
+  if (theme.paddle.isShip) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(px + pw * 0.5, py - 6);
+    ctx.lineTo(px + pw - 4, py + ph * 0.5);
+    ctx.lineTo(px + pw * 0.5, py + ph);
+    ctx.lineTo(px + 4, py + ph * 0.5);
+    ctx.closePath();
+    const grad = ctx.createLinearGradient(px, py, px, py + ph);
+    grad.addColorStop(0, theme.paddle.top);
+    grad.addColorStop(1, theme.paddle.bot);
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.strokeStyle = theme.paddle.stroke;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.save();
+    ctx.globalAlpha = 0.4;
+    ctx.fillStyle = theme.paddle.top;
+    ctx.beginPath();
+    ctx.arc(px + pw * 0.5, py + ph * 0.35, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    ctx.save();
+    ctx.shadowColor = theme.paddle.top;
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = theme.paddle.top;
+    ctx.globalAlpha = 0.3 + Math.sin(performance.now() * 0.006) * 0.15;
+    ctx.beginPath();
+    ctx.arc(px + pw * 0.5, py + ph + 2, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    ctx.restore();
+  } else if (theme.paddle.isRaft) {
+    roundRect(px, py - 2, pw, ph + 4, 8);
+    const grad = ctx.createLinearGradient(px, py, px, py + ph);
+    grad.addColorStop(0, theme.paddle.top);
+    grad.addColorStop(1, theme.paddle.bot);
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.strokeStyle = theme.paddle.stroke;
+    ctx.stroke();
+    ctx.save();
+    ctx.strokeStyle = "rgba(255,255,255,0.3)";
+    ctx.lineWidth = 1;
+    for (let sx = px + 12; sx < px + pw - 10; sx += 14) {
+      ctx.beginPath();
+      ctx.moveTo(sx, py);
+      ctx.lineTo(sx, py + ph + 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  } else {
+    roundRect(px, py, pw, ph, 9);
+    const grad = ctx.createLinearGradient(px, py, px, py + ph);
+    grad.addColorStop(0, theme.paddle.top);
+    grad.addColorStop(1, theme.paddle.bot);
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.strokeStyle = theme.paddle.stroke;
+    ctx.stroke();
+  }
+
+  if (theme.paddle.hasFlowers) {
+    ctx.save();
+    const flowerPositions = [0.15, 0.35, 0.55, 0.75, 0.9];
+    const flowerColors = ["#ff69b4", "#ff4500", "#ffdd00", "#ff8fbf", "#ff1493"];
+    for (let fi = 0; fi < flowerPositions.length; fi++) {
+      const fx = px + pw * flowerPositions[fi];
+      const fy = py + ph * 0.5;
+      ctx.fillStyle = flowerColors[fi % flowerColors.length];
+      for (let p = 0; p < 5; p++) {
+        const angle = (p / 5) * Math.PI * 2 + performance.now() * 0.001;
+        ctx.beginPath();
+        ctx.arc(fx + Math.cos(angle) * 3, fy + Math.sin(angle) * 3, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = "#ffdd00";
+      ctx.beginPath();
+      ctx.arc(fx, fy, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
 
   if (state.effects.superCannonTimer > 0) {
-    const cannonW = clamp(paddle.width * 0.15, 14, 20);
+    const cannonW = clamp(pw * 0.15, 14, 20);
     const cannonH = 12;
-    const leftX = paddle.x + Math.min(15, paddle.width * 0.16) - cannonW * 0.5;
-    const rightX = paddle.x + paddle.width - Math.min(15, paddle.width * 0.16) - cannonW * 0.5;
-    const cannonY = paddle.y - cannonH + 1;
-    ctx.fillStyle = "#2d405f";
+    const leftX = px + Math.min(15, pw * 0.16) - cannonW * 0.5;
+    const rightX = px + pw - Math.min(15, pw * 0.16) - cannonW * 0.5;
+    const cannonY = py - cannonH + 1;
+    ctx.fillStyle = theme.cannon.body;
     roundRect(leftX, cannonY, cannonW, cannonH, 3);
     ctx.fill();
     roundRect(rightX, cannonY, cannonW, cannonH, 3);
     ctx.fill();
-    ctx.fillStyle = "#ffb04f";
+    ctx.fillStyle = theme.cannon.tip;
     ctx.fillRect(leftX + cannonW * 0.32, cannonY - 5, cannonW * 0.36, 5);
     ctx.fillRect(rightX + cannonW * 0.32, cannonY - 5, cannonW * 0.36, 5);
   }
 }
 
 function drawBalls() {
+  const theme = getTheme();
   for (let i = 0; i < state.balls.length; i += 1) {
     const ball = state.balls[i];
     const grad = ctx.createRadialGradient(
@@ -2641,16 +3034,16 @@ function drawBalls() {
       ball.y,
       ball.radius + 3,
     );
-    grad.addColorStop(0, "#ffffff");
-    grad.addColorStop(1, "#ffc46a");
+    grad.addColorStop(0, theme.ball.center);
+    grad.addColorStop(1, theme.ball.edge);
     ctx.fillStyle = grad;
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.save();
-    ctx.globalAlpha = 0.2;
-    ctx.fillStyle = "#ffc46a";
+    ctx.globalAlpha = theme.ball.glowAlpha;
+    ctx.fillStyle = theme.ball.glow;
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.radius + 5, 0, Math.PI * 2);
     ctx.fill();
@@ -2659,10 +3052,11 @@ function drawBalls() {
 }
 
 function drawFireShots() {
+  const theme = getTheme();
   for (let i = 0; i < state.fireShots.length; i += 1) {
     const shot = state.fireShots[i];
     const tail = 14;
-    ctx.strokeStyle = "rgba(255,130,70,0.7)";
+    ctx.strokeStyle = theme.fire.tail;
     ctx.lineWidth = shot.r;
     ctx.lineCap = "round";
     ctx.beginPath();
@@ -2671,8 +3065,8 @@ function drawFireShots() {
     ctx.stroke();
 
     const grad = ctx.createRadialGradient(shot.x, shot.y, 1, shot.x, shot.y, shot.r + 3);
-    grad.addColorStop(0, "#fff9da");
-    grad.addColorStop(1, "#ff7a39");
+    grad.addColorStop(0, theme.fire.headCenter);
+    grad.addColorStop(1, theme.fire.headEdge);
     ctx.fillStyle = grad;
     ctx.beginPath();
     ctx.arc(shot.x, shot.y, shot.r, 0, Math.PI * 2);
@@ -2812,8 +3206,221 @@ function drawChampionCelebration() {
   ctx.restore();
 }
 
+function initSnowPiles() {
+  snowPiles.length = 0;
+  const segments = Math.ceil(WORLD_WIDTH / 4);
+  for (let i = 0; i <= segments; i++) {
+    snowPiles.push(0);
+  }
+  snowPilesInitialized = true;
+}
+
+function updateAmbientParticles(delta) {
+  const theme = getTheme();
+  if (!theme.ambient) { ambientParticles.length = 0; return; }
+
+  if (theme.ambient === "snow") {
+    if (!snowPilesInitialized) initSnowPiles();
+    if (ambientParticles.length < 120 && Math.random() < 0.3) {
+      ambientParticles.push({
+        x: Math.random() * WORLD_WIDTH,
+        y: -5,
+        vx: (Math.random() - 0.5) * 30,
+        vy: 30 + Math.random() * 50,
+        size: 1.5 + Math.random() * 3,
+        wobble: Math.random() * Math.PI * 2,
+      });
+    }
+    for (let i = ambientParticles.length - 1; i >= 0; i--) {
+      const p = ambientParticles[i];
+      p.wobble += delta * 2;
+      p.x += (p.vx + Math.sin(p.wobble) * 15) * delta;
+      p.y += p.vy * delta;
+      const pileIdx = Math.floor(p.x / 4);
+      const pileH = pileIdx >= 0 && pileIdx < snowPiles.length ? snowPiles[pileIdx] : 0;
+      if (p.y >= WORLD_HEIGHT - pileH - p.size) {
+        if (pileIdx >= 0 && pileIdx < snowPiles.length) {
+          snowPiles[pileIdx] = Math.min(snowPiles[pileIdx] + 0.15, 40);
+        }
+        ambientParticles.splice(i, 1);
+      } else if (p.x < -10 || p.x > WORLD_WIDTH + 10) {
+        ambientParticles.splice(i, 1);
+      }
+    }
+  } else if (theme.ambient === "leaves") {
+    if (ambientParticles.length < 30 && Math.random() < 0.04) {
+      ambientParticles.push({
+        x: Math.random() * WORLD_WIDTH,
+        y: -10,
+        vx: 20 + Math.random() * 40,
+        vy: 30 + Math.random() * 40,
+        rot: Math.random() * Math.PI * 2,
+        rotSpeed: (Math.random() - 0.5) * 4,
+        size: 4 + Math.random() * 5,
+        color: ["#cc6633", "#dd8844", "#aa4422", "#88aa22", "#dd6622"][Math.floor(Math.random() * 5)],
+        wobble: Math.random() * Math.PI * 2,
+      });
+    }
+    for (let i = ambientParticles.length - 1; i >= 0; i--) {
+      const p = ambientParticles[i];
+      p.wobble += delta * 1.5;
+      p.x += (p.vx + Math.sin(p.wobble) * 25) * delta;
+      p.y += (p.vy + Math.cos(p.wobble) * 10) * delta;
+      p.rot += p.rotSpeed * delta;
+      if (p.y > WORLD_HEIGHT + 20 || p.x > WORLD_WIDTH + 30) {
+        ambientParticles.splice(i, 1);
+      }
+    }
+  } else if (theme.ambient === "birds") {
+    if (ambientParticles.length < 5 && Math.random() < 0.005) {
+      const fromLeft = Math.random() < 0.5;
+      ambientParticles.push({
+        x: fromLeft ? -20 : WORLD_WIDTH + 20,
+        y: 30 + Math.random() * (WORLD_HEIGHT * 0.3),
+        vx: fromLeft ? 60 + Math.random() * 40 : -(60 + Math.random() * 40),
+        vy: (Math.random() - 0.5) * 20,
+        wingPhase: Math.random() * Math.PI * 2,
+        size: 5 + Math.random() * 3,
+      });
+    }
+    for (let i = ambientParticles.length - 1; i >= 0; i--) {
+      const p = ambientParticles[i];
+      p.wingPhase += delta * 8;
+      p.x += p.vx * delta;
+      p.y += (p.vy + Math.sin(p.wingPhase * 0.3) * 8) * delta;
+      if ((p.vx > 0 && p.x > WORLD_WIDTH + 30) || (p.vx < 0 && p.x < -30)) {
+        ambientParticles.splice(i, 1);
+      }
+    }
+  } else if (theme.ambient === "water") {
+    // Water is drawn statically; no particles needed
+  } else if (theme.ambient === "stars") {
+    if (ambientParticles.length < 40) {
+      for (let i = ambientParticles.length; i < 40; i++) {
+        ambientParticles.push({
+          x: Math.random() * WORLD_WIDTH,
+          y: Math.random() * WORLD_HEIGHT,
+          size: 0.5 + Math.random() * 1.5,
+          twinkle: Math.random() * Math.PI * 2,
+          speed: 0.5 + Math.random() * 2,
+        });
+      }
+    }
+    for (let i = 0; i < ambientParticles.length; i++) {
+      ambientParticles[i].twinkle += delta * ambientParticles[i].speed;
+    }
+  } else if (theme.ambient === "scanlines") {
+    // Drawn statically
+  }
+}
+
+function drawAmbientEffects() {
+  const theme = getTheme();
+  if (!theme.ambient) return;
+
+  if (theme.ambient === "snow") {
+    ctx.save();
+    ctx.fillStyle = "#ffffff";
+    for (let i = 0; i < ambientParticles.length; i++) {
+      const p = ambientParticles[i];
+      ctx.globalAlpha = 0.7;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = "#e8f0ff";
+    for (let seg = 0; seg < snowPiles.length; seg++) {
+      if (snowPiles[seg] > 0) {
+        ctx.fillRect(seg * 4, WORLD_HEIGHT - snowPiles[seg], 4, snowPiles[seg]);
+      }
+    }
+    ctx.restore();
+  } else if (theme.ambient === "leaves") {
+    ctx.save();
+    for (let i = 0; i < ambientParticles.length; i++) {
+      const p = ambientParticles[i];
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = 0.8;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, p.size, p.size * 0.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,0.2)";
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(-p.size, 0);
+      ctx.lineTo(p.size, 0);
+      ctx.stroke();
+      ctx.restore();
+    }
+    ctx.restore();
+  } else if (theme.ambient === "birds") {
+    ctx.save();
+    for (let i = 0; i < ambientParticles.length; i++) {
+      const p = ambientParticles[i];
+      const wingY = Math.sin(p.wingPhase) * p.size * 0.6;
+      ctx.strokeStyle = "#333333";
+      ctx.lineWidth = 1.5;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(p.x - p.size, p.y + wingY);
+      ctx.quadraticCurveTo(p.x - p.size * 0.3, p.y - Math.abs(wingY) * 0.5, p.x, p.y);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(p.x + p.size, p.y + wingY);
+      ctx.quadraticCurveTo(p.x + p.size * 0.3, p.y - Math.abs(wingY) * 0.5, p.x, p.y);
+      ctx.stroke();
+    }
+    ctx.restore();
+  } else if (theme.ambient === "water") {
+    ctx.save();
+    const waterH = 55;
+    const waterY = WORLD_HEIGHT - waterH;
+    const now = performance.now() * 0.001;
+    const grad = ctx.createLinearGradient(0, waterY, 0, WORLD_HEIGHT);
+    grad.addColorStop(0, "rgba(26,140,204,0.3)");
+    grad.addColorStop(1, "rgba(26,140,204,0.6)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, waterY + 8, WORLD_WIDTH, waterH);
+    ctx.strokeStyle = "rgba(255,255,255,0.25)";
+    ctx.lineWidth = 1.5;
+    for (let wave = 0; wave < 3; wave++) {
+      ctx.beginPath();
+      for (let wx = 0; wx <= WORLD_WIDTH; wx += 4) {
+        const wy = waterY + 6 + wave * 8 + Math.sin(wx * 0.02 + now * (1.2 + wave * 0.4) + wave) * 4;
+        if (wx === 0) ctx.moveTo(wx, wy);
+        else ctx.lineTo(wx, wy);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+  } else if (theme.ambient === "stars") {
+    ctx.save();
+    ctx.fillStyle = "#ffffff";
+    for (let i = 0; i < ambientParticles.length; i++) {
+      const p = ambientParticles[i];
+      ctx.globalAlpha = 0.3 + Math.sin(p.twinkle) * 0.3;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  } else if (theme.ambient === "scanlines") {
+    ctx.save();
+    ctx.fillStyle = "rgba(0,0,0,0.08)";
+    for (let sy = 0; sy < WORLD_HEIGHT; sy += 4) {
+      ctx.fillRect(0, sy, WORLD_WIDTH, 2);
+    }
+    ctx.restore();
+  }
+}
+
 function draw() {
   drawBackground();
+  drawAmbientEffects();
   drawBricks();
   drawPaddle();
   drawBalls();
@@ -3024,6 +3631,19 @@ if (openLeaderboardBtn) {
   });
 }
 
+if (openShopBtn) {
+  openShopBtn.addEventListener("click", () => {
+    renderShopGrid();
+    showMenuView("shop");
+  });
+}
+
+if (backFromShopBtn) {
+  backFromShopBtn.addEventListener("click", () => {
+    showMenuView("home");
+  });
+}
+
 if (backFromSettingsBtn) {
   backFromSettingsBtn.addEventListener("click", () => {
     showMenuView("home");
@@ -3095,6 +3715,7 @@ document.addEventListener("visibilitychange", () => {
 
 applyStaticTranslations();
 loadSettings();
+loadTheme();
 loadLeaderboard();
 loadErrorStats();
 showMainOverlay(
