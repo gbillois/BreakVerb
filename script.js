@@ -4329,21 +4329,42 @@ function drawBricks() {
     const glow = brick.glow * 0.6;
     const brickRadius = theme.pixelMode ? 0 : 6;
 
-    roundRect(brick.x, brick.y, brick.w, brick.h, brickRadius);
-    const grad = ctx.createLinearGradient(brick.x, brick.y, brick.x, brick.y + brick.h);
-    if (brick.isGolden) {
-      grad.addColorStop(0, `hsla(46, 95%, ${68 + glow * 18}%, 1)`);
-      grad.addColorStop(1, "hsla(35, 88%, 47%, 1)");
-    } else {
-      grad.addColorStop(0, `hsla(${palette.h}, ${palette.s}%, ${palette.l + 10 + glow * 15}%, 1)`);
-      grad.addColorStop(1, `hsla(${palette.h + 10}, ${Math.max(10, palette.s - 12)}%, ${palette.l - 8}%, 1)`);
-    }
-    ctx.fillStyle = grad;
-    ctx.fill();
+    if (theme.pixelMode) {
+      const x = Math.round(brick.x);
+      const y = Math.round(brick.y);
+      const w = Math.round(brick.w);
+      const h = Math.round(brick.h);
+      const coreColor = brick.isGolden
+        ? `hsl(46, 95%, ${62 + glow * 15}%)`
+        : `hsl(${palette.h}, ${palette.s}%, ${palette.l}%)`;
+      const topShade = brick.isGolden ? "#ffeaa0" : `hsl(${palette.h}, ${Math.max(10, palette.s - 10)}%, ${Math.min(88, palette.l + 14)}%)`;
+      const bottomShade = brick.isGolden ? "#b9771f" : `hsl(${palette.h}, ${Math.max(10, palette.s - 18)}%, ${Math.max(12, palette.l - 18)}%)`;
 
-    ctx.strokeStyle = brick.isGolden ? "rgba(255,238,178,0.88)" : "rgba(255,255,255,0.3)";
-    ctx.lineWidth = 1;
-    ctx.stroke();
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
+      ctx.fillStyle = coreColor;
+      ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = topShade;
+      ctx.fillRect(x + 1, y + 1, w - 2, Math.max(2, Math.round(h * 0.22)));
+      ctx.fillStyle = bottomShade;
+      ctx.fillRect(x + 1, y + h - Math.max(2, Math.round(h * 0.2)) - 1, w - 2, Math.max(2, Math.round(h * 0.2)));
+    } else {
+      roundRect(brick.x, brick.y, brick.w, brick.h, brickRadius);
+      const grad = ctx.createLinearGradient(brick.x, brick.y, brick.x, brick.y + brick.h);
+      if (brick.isGolden) {
+        grad.addColorStop(0, `hsla(46, 95%, ${68 + glow * 18}%, 1)`);
+        grad.addColorStop(1, "hsla(35, 88%, 47%, 1)");
+      } else {
+        grad.addColorStop(0, `hsla(${palette.h}, ${palette.s}%, ${palette.l + 10 + glow * 15}%, 1)`);
+        grad.addColorStop(1, `hsla(${palette.h + 10}, ${Math.max(10, palette.s - 12)}%, ${palette.l - 8}%, 1)`);
+      }
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      ctx.strokeStyle = brick.isGolden ? "rgba(255,238,178,0.88)" : "rgba(255,255,255,0.3)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
 
     if (theme.id === "futuristic" && !brick.isGolden) {
       ctx.save();
@@ -4389,7 +4410,27 @@ function drawPaddle() {
   const pw = paddle.width;
   const ph = paddle.height;
 
-  if (theme.paddle.isShip) {
+  if (theme.pixelMode) {
+    const x = Math.round(px);
+    const y = Math.round(py);
+    const w = Math.round(pw);
+    const h = Math.round(ph);
+    const railW = Math.max(8, Math.round(w * 0.08));
+    const coreX = x + railW;
+    const coreW = Math.max(16, w - railW * 2);
+
+    ctx.fillStyle = "#111";
+    ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
+    ctx.fillStyle = "#ff6a1a";
+    ctx.fillRect(x, y + 1, railW, h - 2);
+    ctx.fillRect(x + w - railW, y + 1, railW, h - 2);
+    ctx.fillStyle = "#9f9f9f";
+    ctx.fillRect(coreX, y + 1, coreW, h - 2);
+    ctx.fillStyle = "#d8d8d8";
+    ctx.fillRect(coreX + 1, y + 1, coreW - 2, Math.max(2, Math.round(h * 0.35)));
+    ctx.fillStyle = "#777";
+    ctx.fillRect(coreX + 1, y + h - Math.max(2, Math.round(h * 0.3)) - 1, coreW - 2, Math.max(2, Math.round(h * 0.3)));
+  } else if (theme.paddle.isShip) {
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(px + pw * 0.5, py - 6);
@@ -4495,6 +4536,20 @@ function drawBalls() {
   const theme = getTheme();
   for (let i = 0; i < state.balls.length; i += 1) {
     const ball = state.balls[i];
+    if (theme.pixelMode) {
+      const r = Math.max(3, Math.round(ball.radius));
+      const x = Math.round(ball.x - r);
+      const y = Math.round(ball.y - r);
+      const size = r * 2;
+      ctx.fillStyle = "#7a0000";
+      ctx.fillRect(x - 1, y - 1, size + 2, size + 2);
+      ctx.fillStyle = "#ff1a1a";
+      ctx.fillRect(x, y, size, size);
+      ctx.fillStyle = "#ff9a9a";
+      ctx.fillRect(x + 1, y + 1, Math.max(2, Math.round(size * 0.35)), Math.max(2, Math.round(size * 0.35)));
+      continue;
+    }
+
     const grad = ctx.createRadialGradient(
       ball.x - 3,
       ball.y - 3,
