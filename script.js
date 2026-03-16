@@ -2,6 +2,7 @@ const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
 const scoreEl = document.getElementById("score");
+const coinsEl = document.getElementById("coins");
 const bestScoreEl = document.getElementById("bestScore");
 const livesEl = document.getElementById("lives");
 const levelEl = document.getElementById("level");
@@ -10,6 +11,7 @@ const modeLabelEl = document.getElementById("modeLabel");
 const pauseBtn = document.getElementById("pauseBtn");
 const endBtn = document.getElementById("endBtn");
 const labelScoreEl = document.getElementById("labelScore");
+const labelCoinsEl = document.getElementById("labelCoins");
 const labelBestScoreEl = document.getElementById("labelBestScore");
 const labelLivesEl = document.getElementById("labelLives");
 const labelLevelEl = document.getElementById("labelLevel");
@@ -94,6 +96,9 @@ const LEADERBOARD_KEY = "breakverb_leaderboard_v1";
 const ERROR_STATS_KEY = "breakverb_error_stats_v1";
 const SETTINGS_KEY = "breakverb_settings_v1";
 const THEME_KEY = "breakverb_theme_v1";
+const COINS_PER_SUCCESSFUL_VERB = 2;
+const PERFECT_LEVELS_FOR_THEME = 5;
+const THEME_PRICE = COINS_PER_SUCCESSFUL_VERB * 10 * PERFECT_LEVELS_FOR_THEME;
 
 const THEMES = {
   modern_english: {
@@ -337,6 +342,7 @@ const I18N = {
     pause: "Pause",
     resume: "Go !",
     stats_score: "Score",
+    stats_coins: "Pièces",
     stats_best: "Record",
     stats_lives: "Vies",
     stats_level: "Niveau",
@@ -411,6 +417,9 @@ const I18N = {
     shop_title: "Boutique de thèmes",
     shop_current: "Actif",
     shop_select: "Choisir",
+    shop_buy: "Acheter",
+    shop_price: "Coût : {price} pièces",
+    shop_perfect_needed: "{count} niveaux parfaits requis",
     shop_back: "Retour",
   },
   en: {
@@ -427,6 +436,7 @@ const I18N = {
     pause: "Pause",
     resume: "Go!",
     stats_score: "Score",
+    stats_coins: "Coins",
     stats_best: "Record",
     stats_lives: "Lives",
     stats_level: "Level",
@@ -501,6 +511,9 @@ const I18N = {
     shop_title: "Theme Shop",
     shop_current: "Active",
     shop_select: "Select",
+    shop_buy: "Buy",
+    shop_price: "Cost: {price} coins",
+    shop_perfect_needed: "{count} perfect levels required",
     shop_back: "Back",
   },
 };
@@ -2264,6 +2277,8 @@ const state = {
   roundCountdown: 0,
   startedOnce: false,
   score: 0,
+  coins: 0,
+  perfectLevels: 0,
   bestScore: 0,
   lives: 3,
   level: 1,
@@ -2315,6 +2330,7 @@ const state = {
     endTimerId: null,
   },
   returnToHomeAfterScoreSave: false,
+  levelVerbStats: { total: 0, solved: 0 },
 };
 
 state.locale = detectLocale();
@@ -2448,6 +2464,7 @@ function applyStaticTranslations() {
   if (canvas) canvas.setAttribute("aria-label", t("canvas_aria"));
 
   if (labelScoreEl) labelScoreEl.textContent = t("stats_score");
+  if (labelCoinsEl) labelCoinsEl.textContent = t("stats_coins");
   if (labelBestScoreEl) labelBestScoreEl.textContent = t("stats_best");
   if (labelLivesEl) labelLivesEl.textContent = t("stats_lives");
   if (labelLevelEl) labelLevelEl.textContent = t("stats_level");
@@ -2555,18 +2572,49 @@ function loadSettings() {
   renderPsychedelicButton();
 }
 
-function loadTheme() {
-  const saved = readJsonStorage(THEME_KEY, "modern_english");
-  if (THEMES[saved]) {
-    activeThemeId = saved;
-  } else {
-    activeThemeId = "modern_english";
+function buildThemeEconomyDefaults() {
+  const unlocked = { modern_english: true };
+  const themeIds = Object.keys(THEMES);
+  for (let i = 0; i < themeIds.length; i += 1) {
+    const id = themeIds[i];
+    if (id !== "modern_english") unlocked[id] = false;
   }
+  return { coins: 0, perfectLevels: 0, unlocked };
+}
+
+function applyEconomyToThemes(economy) {
+  const safe = economy || buildThemeEconomyDefaults();
+  state.coins = Math.max(0, Number(safe.coins) || 0);
+  state.perfectLevels = Math.max(0, Number(safe.perfectLevels) || 0);
+  const themeIds = Object.keys(THEMES);
+  for (let i = 0; i < themeIds.length; i += 1) {
+    const id = themeIds[i];
+    THEMES[id].price = id === "modern_english" ? 0 : THEME_PRICE;
+    THEMES[id].unlocked = id === "modern_english" ? true : Boolean(safe.unlocked && safe.unlocked[id]);
+  }
+}
+
+function saveThemeEconomy() {
+  const unlocked = {};
+  const themeIds = Object.keys(THEMES);
+  for (let i = 0; i < themeIds.length; i += 1) {
+    unlocked[themeIds[i]] = Boolean(THEMES[themeIds[i]].unlocked);
+  }
+  writeJsonStorage(THEME_KEY, { activeThemeId, coins: state.coins, perfectLevels: state.perfectLevels, unlocked });
+}
+
+function loadTheme() {
+  const saved = readJsonStorage(THEME_KEY, null);
+  const defaults = buildThemeEconomyDefaults();
+  applyEconomyToThemes(saved && typeof saved === "object" ? { ...defaults, ...saved } : defaults);
+  const nextThemeId = saved && typeof saved === "object" ? saved.activeThemeId : saved;
+  activeThemeId = THEMES[nextThemeId] && THEMES[nextThemeId].unlocked ? nextThemeId : "modern_english";
+  saveThemeEconomy();
   applyThemeCSS();
 }
 
 function saveTheme() {
-  writeJsonStorage(THEME_KEY, activeThemeId);
+  saveThemeEconomy();
 }
 
 function applyThemeCSS() {
@@ -2580,7 +2628,7 @@ function applyThemeCSS() {
 }
 
 function setActiveTheme(themeId) {
-  if (!THEMES[themeId]) return;
+  if (!THEMES[themeId] || !THEMES[themeId].unlocked) return;
   activeThemeId = themeId;
   applyThemeCSS();
   saveTheme();
@@ -2600,15 +2648,30 @@ function renderShopGrid() {
     card.className = "shop-card" + (isActive ? " active" : "");
     const nameKey = state.locale === "fr" ? "name_fr" : "name_en";
     const descKey = state.locale === "fr" ? "desc_fr" : "desc_en";
+    const hasPerfectRequirement = state.perfectLevels >= PERFECT_LEVELS_FOR_THEME;
+    const canBuy = state.coins >= theme.price && hasPerfectRequirement;
+    const buyLabel = theme.unlocked
+      ? t("shop_select")
+      : (hasPerfectRequirement ? (canBuy ? t("shop_buy") : t("shop_price", { price: theme.price })) : t("shop_perfect_needed", { count: PERFECT_LEVELS_FOR_THEME }));
     card.innerHTML =
       '<div class="shop-card-preview">' + theme.preview + '</div>' +
       '<p class="shop-card-name">' + theme[nameKey] + '</p>' +
       '<p class="shop-card-desc">' + theme[descKey] + '</p>' +
+      '<p class="shop-card-desc">' + t("shop_price", { price: theme.price }) + '</p>' +
       '<button class="shop-card-btn' + (isActive ? ' current' : '') + '" type="button">' +
-      (isActive ? t("shop_current") : t("shop_select")) + '</button>';
+      (isActive ? t("shop_current") : buyLabel) + '</button>';
     const btn = card.querySelector(".shop-card-btn");
     if (!isActive) {
-      btn.addEventListener("click", () => { setActiveTheme(themeId); });
+      btn.addEventListener("click", () => {
+        if (!theme.unlocked) {
+          if (state.coins < theme.price || state.perfectLevels < PERFECT_LEVELS_FOR_THEME) return;
+          state.coins -= theme.price;
+          theme.unlocked = true;
+          saveThemeEconomy();
+          refreshHud();
+        }
+        setActiveTheme(themeId);
+      });
     }
     shopGrid.appendChild(card);
   }
@@ -3076,6 +3139,7 @@ function roundRect(x, y, w, h, r) {
 
 function refreshHud() {
   if (scoreEl) scoreEl.textContent = `${state.score}`;
+  if (coinsEl) coinsEl.textContent = `${state.coins}`;
   if (bestScoreEl) bestScoreEl.textContent = `${Math.max(state.bestScore, state.score)}`;
   if (livesEl) livesEl.textContent = `${state.lives}`;
   if (levelEl) levelEl.textContent = `${state.level}`;
@@ -3279,6 +3343,7 @@ function resetLevel(level, keepStats = true) {
   state.bricks = createBricks(level);
   state.remaining = state.bricks.length;
   state.remainingVerbs = state.bricks.filter(b => b.hasBonus).length;
+  state.levelVerbStats = { total: state.remainingVerbs, solved: 0 };
   state.fallingBonuses = [];
   state.bonusQueue = [];
   state.pendingQuestion = null;
@@ -3759,7 +3824,11 @@ function resolveAnswer(choice, reason = "answer") {
   if (kind === "bonus") {
     if (isCorrect) {
       revealPromptAnswer(prompt, correct, true);
+      state.coins += COINS_PER_SUCCESSFUL_VERB;
+      state.levelVerbStats.solved += 1;
       applyBonus(bonusType);
+      saveThemeEconomy();
+      refreshHud();
       quizFeedback.textContent = t("quiz_feedback_bonus_ok", { name: bonusName });
       quizFeedback.className = "feedback ok";
     } else if (reason === "timeout") {
@@ -3971,6 +4040,11 @@ function loseLife() {
 
 function nextLevel() {
   clearLevelAdvanceTimer();
+  if (state.levelVerbStats.total > 0 && state.levelVerbStats.solved === state.levelVerbStats.total) {
+    state.perfectLevels += 1;
+    saveThemeEconomy();
+    showNotice(`Perfect ${state.levelVerbStats.solved}/${state.levelVerbStats.total}`);
+  }
   if (state.level >= FINAL_LEVEL) {
     startChampionCelebration();
     return;
@@ -5239,6 +5313,7 @@ document.addEventListener("visibilitychange", () => {
 
 applyStaticTranslations();
 loadSettings();
+applyEconomyToThemes(buildThemeEconomyDefaults());
 loadTheme();
 loadLeaderboard();
 loadErrorStats();
