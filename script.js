@@ -192,7 +192,7 @@ const THEMES = {
     unlocked: true,
     preview: "\u{1F338}",
     bg: { top: "#87ceeb", mid: "#98e4c6", bot: "#c8f5a0" },
-    bgLines: { color: "#ffffff", alpha: 0.12, count: 12 },
+    bgLines: { color: "#ffffff", alpha: 0, count: 0 },
     paddle: { top: "#ff8fbf", bot: "#e05090", stroke: "rgba(255,255,255,0.6)", hasFlowers: true },
     ball: { center: "#ffffff", edge: "#ffcc00", glow: "#ffcc00", glowAlpha: 0.25 },
     brickColors: {
@@ -222,7 +222,7 @@ const THEMES = {
     unlocked: true,
     preview: "\u{2744}\u{FE0F}",
     bg: { top: "#b0c4de", mid: "#8aa4c0", bot: "#6a86a8" },
-    bgLines: { color: "#ffffff", alpha: 0.06, count: 10 },
+    bgLines: { color: "#ffffff", alpha: 0, count: 0 },
     paddle: { top: "#e8f0ff", bot: "#a0b8d0", stroke: "rgba(255,255,255,0.7)" },
     ball: { center: "#ffffff", edge: "#a8d8ff", glow: "#a8d8ff", glowAlpha: 0.3 },
     brickColors: {
@@ -251,7 +251,7 @@ const THEMES = {
     unlocked: true,
     preview: "\u{1F3D6}\u{FE0F}",
     bg: { top: "#ff9a4a", mid: "#ff7043", bot: "#1a8ccc" },
-    bgLines: { color: "#ffffff", alpha: 0.06, count: 8 },
+    bgLines: { color: "#ffffff", alpha: 0, count: 0 },
     paddle: { top: "#ff6b9d", bot: "#ff4081", stroke: "rgba(255,255,255,0.5)", isRaft: true },
     ball: { center: "#ffffff", edge: "#ffdd00", glow: "#ffdd00", glowAlpha: 0.3 },
     brickColors: {
@@ -280,7 +280,7 @@ const THEMES = {
     unlocked: true,
     preview: "\u{1F342}",
     bg: { top: "#5a3a20", mid: "#6b4a2a", bot: "#4a6030" },
-    bgLines: { color: "#dda050", alpha: 0.06, count: 14 },
+    bgLines: { color: "#dda050", alpha: 0, count: 0 },
     paddle: { top: "#d4884a", bot: "#a05a28", stroke: "rgba(255,220,160,0.5)" },
     ball: { center: "#ffffff", edge: "#ffaa44", glow: "#ffaa44", glowAlpha: 0.25 },
     brickColors: {
