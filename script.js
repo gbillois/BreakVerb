@@ -99,8 +99,7 @@ const THEME_KEY = "breakverb_theme_v1";
 const COINS_PER_SUCCESSFUL_VERB = 2;
 const SCORE_HOLD_CHEAT_DELAY_MS = 2600;
 const HOLD_SCORE_CHEAT_COINS = 9999;
-const PERFECT_LEVELS_FOR_THEME = 5;
-const THEME_PRICE = COINS_PER_SUCCESSFUL_VERB * 10 * PERFECT_LEVELS_FOR_THEME;
+const THEME_PRICE = COINS_PER_SUCCESSFUL_VERB * 10 * 5;
 
 const THEMES = {
   modern_english: {
@@ -421,7 +420,7 @@ const I18N = {
     shop_select: "Choisir",
     shop_buy: "Acheter",
     shop_price: "Coût : {price} pièces",
-    shop_perfect_needed: "{count} niveaux parfaits requis",
+    shop_price_equivalent: "Prix basé sur 5 niveaux réussis",
     shop_back: "Retour",
   },
   en: {
@@ -515,7 +514,7 @@ const I18N = {
     shop_select: "Select",
     shop_buy: "Buy",
     shop_price: "Cost: {price} coins",
-    shop_perfect_needed: "{count} perfect levels required",
+    shop_price_equivalent: "Price based on 5 successful levels",
     shop_back: "Back",
   },
 };
@@ -2663,23 +2662,23 @@ function renderShopGrid() {
     card.className = "shop-card" + (isActive ? " active" : "");
     const nameKey = state.locale === "fr" ? "name_fr" : "name_en";
     const descKey = state.locale === "fr" ? "desc_fr" : "desc_en";
-    const hasPerfectRequirement = state.perfectLevels >= PERFECT_LEVELS_FOR_THEME;
-    const canBuy = state.coins >= theme.price && hasPerfectRequirement;
+    const canBuy = state.coins >= theme.price;
     const buyLabel = theme.unlocked
       ? t("shop_select")
-      : (hasPerfectRequirement ? (canBuy ? t("shop_buy") : t("shop_price", { price: theme.price })) : t("shop_perfect_needed", { count: PERFECT_LEVELS_FOR_THEME }));
+      : (canBuy ? t("shop_buy") : t("shop_price", { price: theme.price }));
     card.innerHTML =
       '<div class="shop-card-preview">' + theme.preview + '</div>' +
       '<p class="shop-card-name">' + theme[nameKey] + '</p>' +
       '<p class="shop-card-desc">' + theme[descKey] + '</p>' +
       '<p class="shop-card-desc">' + t("shop_price", { price: theme.price }) + '</p>' +
+      '<p class="shop-card-desc">' + t("shop_price_equivalent") + '</p>' +
       '<button class="shop-card-btn' + (isActive ? ' current' : '') + '" type="button">' +
       (isActive ? t("shop_current") : buyLabel) + '</button>';
     const btn = card.querySelector(".shop-card-btn");
     if (!isActive) {
       btn.addEventListener("click", () => {
         if (!theme.unlocked) {
-          if (state.coins < theme.price || state.perfectLevels < PERFECT_LEVELS_FOR_THEME) return;
+          if (state.coins < theme.price) return;
           state.coins -= theme.price;
           theme.unlocked = true;
           saveThemeEconomy();
