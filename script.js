@@ -69,6 +69,8 @@ let WORLD_WIDTH = LANDSCAPE_WORLD.width;
 let WORLD_HEIGHT = LANDSCAPE_WORLD.height;
 const BONUS_BRICK_RATIO = 0.20;
 const NORMAL_BALL_SPEED_FACTOR = 0.62;
+const NORMAL_BALL_SPEED_FACTOR_MAX = 1.0;
+const EXPERT_BALL_SPEED_FACTOR_MAX = 1.2;
 const SLOW_BALL_SPEED_FACTOR = 0.52;
 const MIN_BALL_SPEED = 150;
 const COMBO_SUPER_THRESHOLD = 40;
@@ -2242,13 +2244,14 @@ const paddle = {
 };
 
 function createBall(x, y, vx = 260, vy = -320) {
+  const speedFactor = getBallSpeedFactor();
   return {
     x,
     y,
-    vx: vx * NORMAL_BALL_SPEED_FACTOR,
-    vy: vy * NORMAL_BALL_SPEED_FACTOR,
+    vx: vx * speedFactor,
+    vy: vy * speedFactor,
     radius: 9,
-    maxSpeed: (state.isPortraitMode ? 900 : 860) * NORMAL_BALL_SPEED_FACTOR,
+    maxSpeed: (state.isPortraitMode ? 900 : 860) * speedFactor,
   };
 }
 
@@ -2348,6 +2351,27 @@ function randomWeightedItem(list, weightKey = "weight") {
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
+}
+
+function getBallSpeedFactor(level = state.level, difficulty = state.difficulty) {
+  if (difficulty === "easy") return NORMAL_BALL_SPEED_FACTOR;
+
+  const targetMax = difficulty === "expert"
+    ? EXPERT_BALL_SPEED_FACTOR_MAX
+    : NORMAL_BALL_SPEED_FACTOR_MAX;
+  const safeLevel = clamp(Number(level) || 1, 1, FINAL_LEVEL);
+  const progress = (safeLevel - 1) / Math.max(1, FINAL_LEVEL - 1);
+  return NORMAL_BALL_SPEED_FACTOR + progress * (targetMax - NORMAL_BALL_SPEED_FACTOR);
+}
+
+function updateBallSpeedsForCurrentLevel() {
+  const speedFactor = getBallSpeedFactor();
+  const maxSpeed = (state.isPortraitMode ? 900 : 860) * speedFactor;
+  for (let i = 0; i < state.balls.length; i += 1) {
+    const ball = state.balls[i];
+    ball.maxSpeed = maxSpeed;
+    stabilizeBall(ball);
+  }
 }
 
 function readJsonStorage(key, fallback) {
@@ -2497,6 +2521,7 @@ function persistSettings() {
 function setDifficulty(mode, persist = true) {
   if (!DIFFICULTY_MODES[mode]) return;
   state.difficulty = mode;
+  updateBallSpeedsForCurrentLevel();
   renderDifficultyButtons();
   if (persist) {
     persistSettings();
@@ -2959,7 +2984,7 @@ function updateWorldBounds(portraitMode, preserveObjects = true) {
       ball.y *= scaleY;
       ball.vx *= scaleX;
       ball.vy *= scaleY;
-      ball.maxSpeed = (portraitMode ? 900 : 860) * NORMAL_BALL_SPEED_FACTOR;
+      ball.maxSpeed = (portraitMode ? 900 : 860) * getBallSpeedFactor();
       stabilizeBall(ball);
     }
 
@@ -3084,8 +3109,9 @@ function launchBall() {
   state.ballLocked = false;
   const ball = state.balls[0];
   const side = Math.random() < 0.5 ? -1 : 1;
-  ball.vx = side * (240 + state.level * 16) * NORMAL_BALL_SPEED_FACTOR;
-  ball.vy = -(330 + state.level * 20) * NORMAL_BALL_SPEED_FACTOR;
+  const speedFactor = getBallSpeedFactor();
+  ball.vx = side * (240 + state.level * 16) * speedFactor;
+  ball.vy = -(330 + state.level * 20) * speedFactor;
   stabilizeBall(ball);
 }
 
