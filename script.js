@@ -1477,31 +1477,96 @@ function fitCanvasToViewport() {
   if (!arenaWrap) return;
   const rect = arenaWrap.getBoundingClientRect();
   if (rect.width < 8 || rect.height < 8) return;
-  const scale = Math.min(rect.width / WORLD_WIDTH, rect.height / WORLD_HEIGHT);
-  const cssWidth = Math.max(12, Math.floor(WORLD_WIDTH * scale));
-  const cssHeight = Math.max(12, Math.floor(WORLD_HEIGHT * scale));
-  canvas.style.width = `${cssWidth}px`;
-  canvas.style.height = `${cssHeight}px`;
+
+  const newW = Math.max(12, Math.floor(rect.width));
+  const newH = Math.max(12, Math.floor(rect.height));
+
+  if (newW === WORLD_WIDTH && newH === WORLD_HEIGHT) return;
+
+  const scaleX = newW / WORLD_WIDTH;
+  const scaleY = newH / WORLD_HEIGHT;
+
+  WORLD_WIDTH = newW;
+  WORLD_HEIGHT = newH;
+  canvas.width = newW;
+  canvas.height = newH;
+  canvas.style.width = `${newW}px`;
+  canvas.style.height = `${newH}px`;
+
+  paddle.width = clamp(paddle.width * scaleX, 96, 240);
+  paddle.x = clamp(paddle.x * scaleX, 8, WORLD_WIDTH - paddle.width - 8);
+  paddle.y = getPaddleRestY();
+  state.basePaddleWidth = clamp(state.basePaddleWidth * scaleX, 96, 220);
+  state.touchTargetX *= scaleX;
+
+  for (let i = 0; i < state.balls.length; i += 1) {
+    const ball = state.balls[i];
+    ball.x *= scaleX;
+    ball.y *= scaleY;
+    ball.vx *= scaleX;
+    ball.vy *= scaleY;
+    stabilizeBall(ball);
+  }
+
+  for (let i = 0; i < state.bricks.length; i += 1) {
+    const brick = state.bricks[i];
+    brick.x *= scaleX;
+    brick.y *= scaleY;
+    if (typeof brick.baseX === "number") brick.baseX *= scaleX;
+    if (typeof brick.baseY === "number") brick.baseY *= scaleY;
+    brick.w *= scaleX;
+    brick.h *= scaleY;
+    if (typeof brick.motionAmpX === "number") brick.motionAmpX *= scaleX;
+    if (typeof brick.motionAmpY === "number") brick.motionAmpY *= scaleY;
+  }
+
+  for (let i = 0; i < state.fallingBonuses.length; i += 1) {
+    const bonus = state.fallingBonuses[i];
+    bonus.x *= scaleX;
+    bonus.y *= scaleY;
+    bonus.w *= scaleX;
+    bonus.h *= scaleY;
+    bonus.vy *= scaleY;
+  }
+
+  for (let i = 0; i < state.particles.length; i += 1) {
+    state.particles[i].x *= scaleX;
+    state.particles[i].y *= scaleY;
+  }
+
+  for (let i = 0; i < state.fireShots.length; i += 1) {
+    const shot = state.fireShots[i];
+    shot.x *= scaleX;
+    shot.y *= scaleY;
+    shot.vx *= scaleX;
+    shot.vy *= scaleY;
+  }
 }
 
 function updateWorldBounds(portraitMode, preserveObjects = true) {
-  const target = portraitMode ? PORTRAIT_WORLD : LANDSCAPE_WORLD;
-  if (target.width === WORLD_WIDTH && target.height === WORLD_HEIGHT) {
-    fitCanvasToViewport();
-    return;
-  }
+  if (!arenaWrap) return;
 
-  const oldWidth = WORLD_WIDTH;
-  const oldHeight = WORLD_HEIGHT;
-  const scaleX = target.width / oldWidth;
-  const scaleY = target.height / oldHeight;
+  const rect = arenaWrap.getBoundingClientRect();
+  const fallback = portraitMode ? PORTRAIT_WORLD : LANDSCAPE_WORLD;
+  const targetW = rect.width > 8 ? Math.max(12, Math.floor(rect.width)) : fallback.width;
+  const targetH = rect.height > 8 ? Math.max(12, Math.floor(rect.height)) : fallback.height;
 
-  WORLD_WIDTH = target.width;
-  WORLD_HEIGHT = target.height;
+  const modeChanged = state.isPortraitMode !== portraitMode;
+  const sizeChanged = targetW !== WORLD_WIDTH || targetH !== WORLD_HEIGHT;
+
+  if (!modeChanged && !sizeChanged) return;
+
+  const scaleX = targetW / WORLD_WIDTH;
+  const scaleY = targetH / WORLD_HEIGHT;
+
+  WORLD_WIDTH = targetW;
+  WORLD_HEIGHT = targetH;
   state.isPortraitMode = portraitMode;
   document.body.classList.toggle("portrait-mode", portraitMode);
   canvas.width = WORLD_WIDTH;
   canvas.height = WORLD_HEIGHT;
+  canvas.style.width = `${WORLD_WIDTH}px`;
+  canvas.style.height = `${WORLD_HEIGHT}px`;
 
   if (preserveObjects) {
     paddle.width = clamp(paddle.width * scaleX, 96, 240);
@@ -1557,8 +1622,6 @@ function updateWorldBounds(portraitMode, preserveObjects = true) {
     paddle.y = getPaddleRestY();
     state.touchTargetX = WORLD_WIDTH * 0.5;
   }
-
-  fitCanvasToViewport();
 }
 
 function stabilizeBall(ball) {

@@ -128,8 +128,8 @@ h1 {
   flex: 1 1 auto;
   min-height: 200px;
   height: auto;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: stretch;
   background: transparent;
 }
 
@@ -137,8 +137,7 @@ canvas {
   display: block;
   width: 100%;
   height: 100%;
-  max-width: 100%;
-  max-height: 100%;
+  flex: 1 1 auto;
   background:
     linear-gradient(180deg, #111f49, #122b5a 34%, #173b6c),
     repeating-linear-gradient(
