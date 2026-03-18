@@ -40,11 +40,20 @@ python3 -m http.server 8000
 
 Puis ouvrir `http://localhost:8000`.
 
+## PWA et mode hors ligne
+
+- L'application est installable comme **PWA** (manifest + service worker).
+- En mode PWA, les fichiers principaux sont mis en cache pour un lancement hors ligne.
+- Dans **Réglages**, le bouton *Vérifier les mises à jour* permet de rechercher/appliquer une nouvelle version.
+
 ## Structure
 
-- `index.html` : structure de la page et overlays
+- `index.html` : structure de la page, overlays et liens PWA
 - `style.css` : styles visuels responsive (desktop/mobile/tablette)
-- `script.js` : logique du jeu, niveaux, collisions, bonus, quiz
+- `script.js` : logique du jeu, niveaux, collisions, bonus, quiz, mise à jour PWA
+- `manifest.webmanifest` : métadonnées d'installation PWA
+- `sw.js` : cache hors ligne et gestion de mise à jour
+- `icons/icon.svg` : icône de l'application
 
 ## Licence
 
