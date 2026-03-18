@@ -37,6 +37,9 @@ const difficultyHintEl = document.getElementById("difficultyHint");
 const psychedelicTitleEl = document.getElementById("psychedelicTitle");
 const psychedelicToggleBtn = document.getElementById("psychedelicToggleBtn");
 const settingsCreditEl = document.getElementById("settingsCredit");
+const updateTitleEl = document.getElementById("updateTitle");
+const checkUpdateBtn = document.getElementById("checkUpdateBtn");
+const updateStatusEl = document.getElementById("updateStatus");
 const homeHintEl = document.getElementById("homeHint");
 const leaderboardTitleEl = document.getElementById("leaderboardTitle");
 const leaderboardHeadingEl = document.getElementById("leaderboardHeading");
@@ -48,7 +51,7 @@ const leaderboardList = document.getElementById("leaderboardList");
 const errorStatsHeadingEl = document.getElementById("errorStatsHeading");
 const errorStatsList = document.getElementById("errorStatsList");
 const nextLevelCountdownTextEl = document.getElementById("nextLevelCountdownText");
-const difficultyButtons = Array.from(document.querySelectorAll(".difficulty-btn"));
+const difficultyButtons = Array.from(document.querySelectorAll(".difficulty-btn[data-difficulty]"));
 
 const quizOverlay = document.getElementById("quizOverlay");
 const quizTitleEl = document.getElementById("quizTitle");
@@ -341,6 +344,14 @@ const I18N = {
     menu_leaderboard: "Hall of Fame",
     menu_back: "Retour",
     settings_credit: "Un jeu créé par Gérôme BILLOIS",
+    update_title: "Mises à jour",
+    update_check: "Vérifier les mises à jour",
+    update_not_supported: "Mises à jour automatiques non disponibles dans ce navigateur.",
+    update_idle: "PWA hors ligne activée.",
+    update_checking: "Recherche de mise à jour...",
+    update_available: "Mise à jour prête : clique pour appliquer.",
+    update_updated: "Application mise à jour. Recharge en cours...",
+    update_none: "Déjà à jour.",
     pause: "Pause",
     resume: "Go !",
     stats_score: "Score",
@@ -435,6 +446,14 @@ const I18N = {
     menu_leaderboard: "Hall of Fame",
     menu_back: "Back",
     settings_credit: "A game made by Gérôme BILLOIS",
+    update_title: "Updates",
+    update_check: "Check for updates",
+    update_not_supported: "Automatic updates are not available in this browser.",
+    update_idle: "Offline PWA is enabled.",
+    update_checking: "Checking for updates...",
+    update_available: "Update ready: click to apply.",
+    update_updated: "App updated. Reloading...",
+    update_none: "Already up to date.",
     pause: "Pause",
     resume: "Go!",
     stats_score: "Score",
@@ -2503,6 +2522,9 @@ function applyStaticTranslations() {
   if (difficultyTitleEl) difficultyTitleEl.textContent = t("difficulty_title");
   if (psychedelicTitleEl) psychedelicTitleEl.textContent = t("psychedelic_title");
   if (settingsCreditEl) settingsCreditEl.textContent = t("settings_credit");
+  if (updateTitleEl) updateTitleEl.textContent = t("update_title");
+  if (checkUpdateBtn) checkUpdateBtn.textContent = t("update_check");
+  if (updateStatusEl && !updateStatusEl.textContent.trim()) updateStatusEl.textContent = t("update_idle");
 
   if (homeHintEl) homeHintEl.style.display = "none";
   if (leaderboardTitleEl) leaderboardTitleEl.textContent = t("leaderboard_title");
@@ -2542,6 +2564,75 @@ function renderPsychedelicButton() {
     "aria-label",
     state.psychedelicMode ? t("psychedelic_on") : t("psychedelic_off"),
   );
+}
+
+function setUpdateStatus(message) {
+  if (!updateStatusEl) return;
+  updateStatusEl.textContent = message;
+}
+
+let serviceWorkerRegistration = null;
+let serviceWorkerUpdateReady = false;
+
+function wireInstallingWorker(worker) {
+  if (!worker) return;
+  worker.addEventListener("statechange", () => {
+    if (worker.state === "installed" && navigator.serviceWorker.controller) {
+      serviceWorkerUpdateReady = true;
+      setUpdateStatus(t("update_available"));
+    }
+  });
+}
+
+async function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) {
+    setUpdateStatus(t("update_not_supported"));
+    return;
+  }
+  try {
+    const registration = await navigator.serviceWorker.register("./sw.js");
+    serviceWorkerRegistration = registration;
+    if (registration.waiting) {
+      serviceWorkerUpdateReady = true;
+      setUpdateStatus(t("update_available"));
+    } else {
+      setUpdateStatus(t("update_idle"));
+    }
+    wireInstallingWorker(registration.installing);
+    registration.addEventListener("updatefound", () => {
+      wireInstallingWorker(registration.installing);
+    });
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      setUpdateStatus(t("update_updated"));
+      window.location.reload();
+    });
+  } catch (error) {
+    setUpdateStatus(t("update_not_supported"));
+  }
+}
+
+async function checkForAppUpdate() {
+  if (!serviceWorkerRegistration) {
+    setUpdateStatus(t("update_not_supported"));
+    return;
+  }
+  if (serviceWorkerRegistration.waiting || serviceWorkerUpdateReady) {
+    const waitingWorker = serviceWorkerRegistration.waiting;
+    if (waitingWorker) {
+      setUpdateStatus(t("update_updated"));
+      waitingWorker.postMessage({ type: "SKIP_WAITING" });
+      return;
+    }
+  }
+
+  setUpdateStatus(t("update_checking"));
+  await serviceWorkerRegistration.update();
+
+  if (serviceWorkerRegistration.waiting || serviceWorkerUpdateReady) {
+    setUpdateStatus(t("update_available"));
+  } else {
+    setUpdateStatus(t("update_none"));
+  }
 }
 
 function persistSettings() {
@@ -5349,6 +5440,12 @@ if (psychedelicToggleBtn) {
   });
 }
 
+if (checkUpdateBtn) {
+  checkUpdateBtn.addEventListener("click", () => {
+    checkForAppUpdate();
+  });
+}
+
 window.addEventListener("resize", () => {
   refreshResponsiveLayout(true);
 });
@@ -5375,6 +5472,7 @@ document.addEventListener("visibilitychange", () => {
 
 applyStaticTranslations();
 loadSettings();
+registerServiceWorker();
 applyEconomyToThemes(buildThemeEconomyDefaults());
 loadTheme();
 loadLeaderboard();

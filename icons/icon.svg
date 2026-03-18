@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="VerbBreaker icon">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#172b6c"/>
+      <stop offset="55%" stop-color="#245aac"/>
+      <stop offset="100%" stop-color="#1ac5b1"/>
+    </linearGradient>
+    <linearGradient id="v" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffe7ad"/>
+      <stop offset="100%" stop-color="#f6bf52"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="32" y="32" width="448" height="448" rx="96" fill="url(#bg)"/>
+  <rect x="44" y="44" width="424" height="424" rx="84" fill="none" stroke="#ffe39f" stroke-width="10" opacity="0.85"/>
+
+  <path d="M138 142h58l60 192 60-192h58L290 374h-68L138 142z" fill="url(#v)"/>
+
+  <rect x="106" y="382" width="300" height="42" rx="18" fill="#60b3ff"/>
+  <path d="M166 382v42M256 382v42M346 382v42" stroke="#123066" stroke-width="10" stroke-linecap="round" opacity="0.65"/>
+</svg>

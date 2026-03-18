@@ -1,0 +1,19 @@
+{
+  "name": "VerbBreaker",
+  "short_name": "VerbBreaker",
+  "description": "Break the verbs to win!",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b1230",
+  "theme_color": "#172b6c",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
