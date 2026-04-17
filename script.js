@@ -107,6 +107,8 @@ const SCORE_HOLD_CHEAT_DELAY_MS = 2600;
 const HOLD_SCORE_CHEAT_COINS = 9999;
 const THEME_PRICE = 50;
 const SHOP_FREE_FOR_TESTS = true;
+const ASSET_NO_CACHE = "2026-04-17a";
+const TEST_DISABLE_APP_CACHE = true;
 const QUICK_THEME_CLASSIC_ID = "modern_english";
 const QUICK_THEME_CASTLE_ID = "castle_fantasy";
 const QUICK_THEME_KAWAII_ID = "kawaii_pinky";
@@ -433,7 +435,8 @@ function loadImage(src) {
     img.decoding = "async";
     img.onload = () => resolve(img);
     img.onerror = () => resolve(null);
-    img.src = src;
+    const sep = src.includes("?") ? "&" : "?";
+    img.src = `${src}${sep}nocache=${encodeURIComponent(ASSET_NO_CACHE)}`;
   });
 }
 
@@ -3019,6 +3022,16 @@ function setUpdateStatus(message) {
 let serviceWorkerRegistration = null;
 let serviceWorkerUpdateReady = false;
 
+async function clearBrowserCachesForTests() {
+  if (!("caches" in window)) return;
+  try {
+    const keys = await caches.keys();
+    await Promise.all(keys.map((key) => caches.delete(key)));
+  } catch (error) {
+    // no-op
+  }
+}
+
 function wireInstallingWorker(worker) {
   if (!worker) return;
   worker.addEventListener("statechange", () => {
@@ -3034,8 +3047,19 @@ async function registerServiceWorker() {
     setUpdateStatus(t("update_not_supported"));
     return;
   }
+  if (TEST_DISABLE_APP_CACHE) {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((reg) => reg.unregister()));
+      await clearBrowserCachesForTests();
+      setUpdateStatus("Test mode: cache disabled.");
+    } catch (error) {
+      setUpdateStatus("Test mode: cache cleanup failed.");
+    }
+    return;
+  }
   try {
-    const registration = await navigator.serviceWorker.register("./sw.js");
+    const registration = await navigator.serviceWorker.register(`./sw.js?nocache=${encodeURIComponent(ASSET_NO_CACHE)}`);
     serviceWorkerRegistration = registration;
     if (registration.waiting) {
       serviceWorkerUpdateReady = true;
