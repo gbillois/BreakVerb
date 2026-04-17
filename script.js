@@ -107,7 +107,7 @@ const SCORE_HOLD_CHEAT_DELAY_MS = 2600;
 const HOLD_SCORE_CHEAT_COINS = 9999;
 const THEME_PRICE = 50;
 const SHOP_FREE_FOR_TESTS = true;
-const ASSET_NO_CACHE = "2026-04-17c";
+const ASSET_NO_CACHE = "2026-04-17d";
 const TEST_DISABLE_APP_CACHE = true;
 const QUICK_THEME_CLASSIC_ID = "modern_english";
 const QUICK_THEME_CASTLE_ID = "castle_fantasy";
@@ -574,6 +574,17 @@ function pickKawaiiBrickItemWeighted(generatorState) {
     generatorState.largeCooldown = Math.max(0, generatorState.largeCooldown - 1);
   }
   return chosen;
+}
+
+function applyKawaiiItemToBrick(brick, item) {
+  if (!brick || !item) return;
+  brick.kawaiiItem = item;
+  brick.renderScaleX = item.sizeX;
+  brick.renderScaleY = item.sizeY;
+  brick.hitScaleX = item.hitX;
+  brick.hitScaleY = item.hitY;
+  brick.hitOffsetX = 0;
+  brick.hitOffsetY = item.hitOffsetY;
 }
 
 function getBrickHitRect(brick) {
@@ -3323,6 +3334,12 @@ function setActiveTheme(themeId) {
   applyThemeCSS();
   saveTheme();
   state.patternOrderIndices = [];
+  if (state.startedOnce) {
+    state.bricks = createBricks(Math.max(1, state.level || 1));
+    state.remainingVerbs = state.bricks.filter((b) => b.hasBonus).length;
+    state.levelVerbStats = { total: state.remainingVerbs, solved: 0 };
+    refreshHud();
+  }
   renderShopGrid();
 }
 
@@ -3968,6 +3985,16 @@ function createBricks(level) {
   const rowOffset = (rows - usedRows) * 0.5 - minActiveRow;
 
   const bricks = [];
+  const kawaiiGenerator = isKawaiiThemeActive()
+    ? {
+      placed: 0,
+      largeUsed: 0,
+      largeQuota: Math.max(4, Math.round(activeCount * 0.16)),
+      largeCooldown: 0,
+      earlyPhaseCutoff: Math.max(4, Math.round(activeCount * 0.2)),
+      usedBySprite: {},
+    }
+    : null;
   const ampX = state.isPortraitMode ? PSYCHEDELIC_AMP_X_PORTRAIT : PSYCHEDELIC_AMP_X_LANDSCAPE;
   const ampY = state.isPortraitMode ? PSYCHEDELIC_AMP_Y_PORTRAIT : PSYCHEDELIC_AMP_Y_LANDSCAPE;
   let activeIdx = 0;
@@ -3981,14 +4008,7 @@ function createBricks(level) {
       const hasBonus = bonusSlots.has(activeIdx);
       const bonusType = hasBonus ? randomWeightedItem(BONUS_TYPES) : null;
       const isGolden = activeIdx === goldenSlot;
-      const kawaiiItem = isKawaiiThemeActive()
-        ? pickKawaiiBrickItem(activeIdx + level * 17 + r * 13 + c * 7)
-        : null;
-      const renderScaleX = kawaiiItem ? kawaiiItem.sizeX : 1;
-      const renderScaleY = kawaiiItem ? kawaiiItem.sizeY : 1;
-      const hitScaleX = kawaiiItem ? kawaiiItem.hitX : 1;
-      const hitScaleY = kawaiiItem ? kawaiiItem.hitY : 1;
-      const hitOffsetY = kawaiiItem ? kawaiiItem.hitOffsetY : 0;
+      const kawaiiItem = isKawaiiThemeActive() ? pickKawaiiBrickItemWeighted(kawaiiGenerator) : null;
       bricks.push({
         x,
         y,
@@ -4001,13 +4021,13 @@ function createBricks(level) {
         hasBonus,
         bonusType,
         verb: hasBonus ? bonusVerbs[verbIdx] : null,
-        kawaiiItem,
-        renderScaleX,
-        renderScaleY,
-        hitScaleX,
-        hitScaleY,
+        kawaiiItem: null,
+        renderScaleX: 1,
+        renderScaleY: 1,
+        hitScaleX: 1,
+        hitScaleY: 1,
         hitOffsetX: 0,
-        hitOffsetY,
+        hitOffsetY: 0,
         active: true,
         glow: 0,
         row: r,
@@ -4017,6 +4037,9 @@ function createBricks(level) {
         motionAmpX: ampX,
         motionAmpY: ampY,
       });
+      if (kawaiiItem) {
+        applyKawaiiItemToBrick(bricks[bricks.length - 1], kawaiiItem);
+      }
       if (hasBonus) verbIdx += 1;
       activeIdx += 1;
     }
@@ -5154,6 +5177,12 @@ function drawBricks() {
     const palette = themeColors[brick.code] || themeColors.D;
     const glow = brick.glow * 0.6;
     const brickRadius = theme.pixelMode ? 0 : 6;
+    if (isKawaiiThemeActive() && !brick.kawaiiItem) {
+      applyKawaiiItemToBrick(
+        brick,
+        pickKawaiiBrickItem((brick.row || 0) * 37 + (brick.col || 0) * 13 + i * 5),
+      );
+    }
 
     if (isCustomPixelThemeActive()) {
       const spriteName = brick.isGolden ? "brickGold" : customBrickSpriteName(brick.code, brick);
