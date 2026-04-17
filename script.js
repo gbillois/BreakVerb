@@ -33,6 +33,7 @@ const menuLeaderboardView = document.getElementById("menuLeaderboardView");
 const menuLevelAdvanceView = document.getElementById("menuLevelAdvanceView");
 const settingsTitleEl = document.getElementById("settingsTitle");
 const difficultyTitleEl = document.getElementById("difficultyTitle");
+const themeTitleEl = document.getElementById("themeTitle");
 const difficultyHintEl = document.getElementById("difficultyHint");
 const psychedelicTitleEl = document.getElementById("psychedelicTitle");
 const psychedelicToggleBtn = document.getElementById("psychedelicToggleBtn");
@@ -52,6 +53,7 @@ const errorStatsHeadingEl = document.getElementById("errorStatsHeading");
 const errorStatsList = document.getElementById("errorStatsList");
 const nextLevelCountdownTextEl = document.getElementById("nextLevelCountdownText");
 const difficultyButtons = Array.from(document.querySelectorAll(".difficulty-btn[data-difficulty]"));
+const themeButtons = Array.from(document.querySelectorAll(".theme-btn[data-theme]"));
 
 const quizOverlay = document.getElementById("quizOverlay");
 const quizTitleEl = document.getElementById("quizTitle");
@@ -104,6 +106,28 @@ const COINS_PER_SUCCESSFUL_VERB = 2;
 const SCORE_HOLD_CHEAT_DELAY_MS = 2600;
 const HOLD_SCORE_CHEAT_COINS = 9999;
 const THEME_PRICE = 50;
+const SHOP_FREE_FOR_TESTS = true;
+const QUICK_THEME_CLASSIC_ID = "modern_english";
+const QUICK_THEME_CASTLE_ID = "castle_fantasy";
+const CASTLE_THEME_ASSETS = {
+  background: "assets/pixel-castle/bg_castle.png",
+  paddle: "assets/pixel-castle/paddle.png",
+  cannon: "assets/pixel-castle/cannon.png",
+  ball: "assets/pixel-castle/ball.png",
+  fireShot: "assets/pixel-castle/fire_shot.png",
+  brickGold: "assets/pixel-castle/brick_gold.png",
+  brickR: "assets/pixel-castle/brick_R.png",
+  brickW: "assets/pixel-castle/brick_W.png",
+  brickB: "assets/pixel-castle/brick_B.png",
+  brickY: "assets/pixel-castle/brick_Y.png",
+  brickG: "assets/pixel-castle/brick_G.png",
+  brickD: "assets/pixel-castle/brick_D.png",
+  bonusLongPaddle: "assets/pixel-castle/bonus_long_paddle.png",
+  bonusMultiball: "assets/pixel-castle/bonus_multiball.png",
+  bonusExtraLife: "assets/pixel-castle/bonus_extra_life.png",
+  bonusSlowBall: "assets/pixel-castle/bonus_slow_ball.png",
+};
+const castleThemeImages = {};
 
 const THEMES = {
   modern_english: {
@@ -131,6 +155,36 @@ const THEMES = {
     fire: { tail: "rgba(255,130,70,0.7)", headCenter: "#fff9da", headEdge: "#ff7a39", barrel: "#2d405f", tip: "#ffb04f" },
     cannon: { body: "#2d405f", tip: "#ffb04f" },
     ambient: null,
+    cssCanvasBg: "linear-gradient(180deg, #111f49, #122b5a 34%, #173b6c)",
+    cssBgDeep: "#1a1644",
+    cssBgMid: "#2d2a68",
+  },
+  castle_fantasy: {
+    id: "castle_fantasy",
+    name_fr: "Castle Fantasy",
+    name_en: "Castle Fantasy",
+    desc_fr: "Style fantasy médiéval pixel art avec forteresses et briques de château.",
+    desc_en: "Fantasy castle pixel-art style with fortress visuals and masonry bricks.",
+    price: 0,
+    unlocked: true,
+    preview: "\u{1F3F0}",
+    bg: { top: "#0b243b", mid: "#13415a", bot: "#1a5c73" },
+    bgLines: { color: "#ffffff", alpha: 0, count: 0 },
+    paddle: { top: "#7fe3ff", bot: "#24a6dd", stroke: "rgba(255,255,255,0.5)" },
+    ball: { center: "#ffffff", edge: "#ffc46a", glow: "#ffc46a", glowAlpha: 0.2 },
+    brickColors: {
+      R: { h: 2, s: 82, l: 54, text: "#fff1f1" },
+      W: { h: 42, s: 28, l: 87, text: "#142136" },
+      B: { h: 212, s: 72, l: 49, text: "#eef7ff" },
+      Y: { h: 45, s: 90, l: 56, text: "#2a200a" },
+      G: { h: 164, s: 30, l: 44, text: "#f3fff8" },
+      D: { h: 24, s: 82, l: 53, text: "#fff9eb" },
+    },
+    particle: { colors: ["#ffd995", "#7fe3ff", "#ffb26b", "#ffe69f"] },
+    fire: { tail: "rgba(255,130,70,0.7)", headCenter: "#fff9da", headEdge: "#ff7a39", barrel: "#2d405f", tip: "#ffb04f" },
+    cannon: { body: "#2d405f", tip: "#ffb04f" },
+    ambient: null,
+    pixelMode: true,
     cssCanvasBg: "linear-gradient(180deg, #111f49, #122b5a 34%, #173b6c)",
     cssBgDeep: "#1a1644",
     cssBgMid: "#2d2a68",
@@ -315,6 +369,52 @@ const THEMES = {
 
 let activeThemeId = "modern_english";
 function getTheme() { return THEMES[activeThemeId] || THEMES.modern_english; }
+function isCastleThemeActive() { return activeThemeId === QUICK_THEME_CASTLE_ID; }
+
+function setCanvasSmoothingForTheme() {
+  ctx.imageSmoothingEnabled = !isCastleThemeActive();
+}
+
+function loadImage(src) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.decoding = "async";
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
+async function loadCastleThemeAssets() {
+  const entries = Object.entries(CASTLE_THEME_ASSETS);
+  const loaded = await Promise.all(entries.map(async ([key, src]) => [key, await loadImage(src)]));
+  for (let i = 0; i < loaded.length; i += 1) {
+    const [key, img] = loaded[i];
+    if (img) castleThemeImages[key] = img;
+  }
+}
+
+function castleSprite(name) {
+  return castleThemeImages[name] || null;
+}
+
+function castleBrickSpriteName(code) {
+  const key = `${code || "D"}`.toUpperCase();
+  if (key === "R") return "brickR";
+  if (key === "W") return "brickW";
+  if (key === "B") return "brickB";
+  if (key === "Y") return "brickY";
+  if (key === "G") return "brickG";
+  return "brickD";
+}
+
+function castleBonusSpriteName(typeId) {
+  if (typeId === "long_paddle") return "bonusLongPaddle";
+  if (typeId === "multiball") return "bonusMultiball";
+  if (typeId === "extra_life") return "bonusExtraLife";
+  if (typeId === "slow_ball") return "bonusSlowBall";
+  return "bonusLongPaddle";
+}
 
 const ambientParticles = [];
 const snowPiles = [];
@@ -362,6 +462,9 @@ const I18N = {
     stats_remaining: "Reste",
     stats_mode: "Mode",
     difficulty_title: "Difficulté du quiz",
+    theme_title: "Thème visuel",
+    theme_classic_btn: "Classique",
+    theme_castle_btn: "Castle Fantasy",
     difficulty_hint: "Facile: illimité • Normal: 10s • Expert: 5s",
     difficulty_easy: "Chill",
     difficulty_normal: "Normal",
@@ -464,6 +567,9 @@ const I18N = {
     stats_remaining: "Left",
     stats_mode: "Mode",
     difficulty_title: "Quiz difficulty",
+    theme_title: "Visual theme",
+    theme_classic_btn: "Classic",
+    theme_castle_btn: "Castle Fantasy",
     difficulty_hint: "Chill: unlimited • Normal: 10s • Hardcore: 5s",
     difficulty_easy: "Chill",
     difficulty_normal: "Normal",
@@ -590,6 +696,8 @@ const BONUS_NAME_KEYS = {
 
 canvas.width = WORLD_WIDTH;
 canvas.height = WORLD_HEIGHT;
+setCanvasSmoothingForTheme();
+loadCastleThemeAssets();
 
 const IRREGULAR_VERBS = [
   { base: "be", past: "was/were", pp: "been" },
@@ -2520,6 +2628,7 @@ function applyStaticTranslations() {
   if (backFromShopBtn) backFromShopBtn.textContent = t("shop_back");
   if (settingsTitleEl) settingsTitleEl.textContent = t("menu_settings");
   if (difficultyTitleEl) difficultyTitleEl.textContent = t("difficulty_title");
+  if (themeTitleEl) themeTitleEl.textContent = t("theme_title");
   if (psychedelicTitleEl) psychedelicTitleEl.textContent = t("psychedelic_title");
   if (settingsCreditEl) settingsCreditEl.textContent = t("settings_credit");
   if (updateTitleEl) updateTitleEl.textContent = t("update_title");
@@ -2541,6 +2650,11 @@ function applyStaticTranslations() {
     else if (btn.dataset.difficulty === "expert") btn.textContent = t("difficulty_expert_btn");
     else btn.textContent = t("difficulty_normal_btn");
   });
+  themeButtons.forEach((btn) => {
+    if (btn.dataset.theme === "castle") btn.textContent = t("theme_castle_btn");
+    else btn.textContent = t("theme_classic_btn");
+  });
+  renderThemeButtons();
   renderPsychedelicButton();
 
   localizeBonusTypeNames();
@@ -2564,6 +2678,23 @@ function renderPsychedelicButton() {
     "aria-label",
     state.psychedelicMode ? t("psychedelic_on") : t("psychedelic_off"),
   );
+}
+
+function renderThemeButtons() {
+  const isCastle = activeThemeId === QUICK_THEME_CASTLE_ID;
+  themeButtons.forEach((btn) => {
+    const isClassicBtn = btn.dataset.theme === "classic";
+    const isActive = isClassicBtn ? !isCastle : isCastle;
+    btn.classList.toggle("active", isActive);
+  });
+}
+
+function setThemeFromSettingsChoice(choice) {
+  if (choice === "castle") {
+    setActiveTheme(QUICK_THEME_CASTLE_ID);
+    return;
+  }
+  setActiveTheme(QUICK_THEME_CLASSIC_ID);
 }
 
 function setUpdateStatus(message) {
@@ -2676,15 +2807,18 @@ function loadSettings() {
   }
   state.psychedelicMode = Boolean(settings?.psychedelicMode);
   renderDifficultyButtons();
+  renderThemeButtons();
   renderPsychedelicButton();
 }
 
 function buildThemeEconomyDefaults() {
-  const unlocked = { modern_english: true };
+  const unlocked = { modern_english: true, castle_fantasy: true };
   const themeIds = Object.keys(THEMES);
   for (let i = 0; i < themeIds.length; i += 1) {
     const id = themeIds[i];
-    if (id !== "modern_english") unlocked[id] = false;
+    if (id !== "modern_english" && id !== "castle_fantasy") {
+      unlocked[id] = SHOP_FREE_FOR_TESTS ? true : false;
+    }
   }
   return { coins: 0, perfectLevels: 0, unlocked };
 }
@@ -2696,8 +2830,14 @@ function applyEconomyToThemes(economy) {
   const themeIds = Object.keys(THEMES);
   for (let i = 0; i < themeIds.length; i += 1) {
     const id = themeIds[i];
-    THEMES[id].price = id === "modern_english" ? 0 : THEME_PRICE;
-    THEMES[id].unlocked = id === "modern_english" ? true : Boolean(safe.unlocked && safe.unlocked[id]);
+    if (SHOP_FREE_FOR_TESTS) {
+      THEMES[id].price = 0;
+      THEMES[id].unlocked = true;
+      continue;
+    }
+    const isFreeDefault = id === QUICK_THEME_CLASSIC_ID || id === QUICK_THEME_CASTLE_ID;
+    THEMES[id].price = isFreeDefault ? 0 : THEME_PRICE;
+    THEMES[id].unlocked = isFreeDefault ? true : Boolean(safe.unlocked && safe.unlocked[id]);
   }
 }
 
@@ -2714,7 +2854,9 @@ function loadTheme() {
   const saved = readJsonStorage(THEME_KEY, null);
   const defaults = buildThemeEconomyDefaults();
   applyEconomyToThemes(saved && typeof saved === "object" ? { ...defaults, ...saved } : defaults);
-  const nextThemeId = saved && typeof saved === "object" ? saved.activeThemeId : saved;
+  let nextThemeId = saved && typeof saved === "object" ? saved.activeThemeId : saved;
+  if (nextThemeId === "classic") nextThemeId = QUICK_THEME_CLASSIC_ID;
+  if (nextThemeId === "castle") nextThemeId = QUICK_THEME_CASTLE_ID;
   activeThemeId = THEMES[nextThemeId] && THEMES[nextThemeId].unlocked ? nextThemeId : "modern_english";
   saveThemeEconomy();
   applyThemeCSS();
@@ -2730,8 +2872,10 @@ function applyThemeCSS() {
   root.style.setProperty("--bg-deep", theme.cssBgDeep);
   root.style.setProperty("--bg-mid", theme.cssBgMid);
   canvas.style.background = theme.cssCanvasBg;
+  setCanvasSmoothingForTheme();
   ambientParticles.length = 0;
   snowPilesInitialized = false;
+  renderThemeButtons();
 }
 
 function setActiveTheme(themeId) {
@@ -3063,6 +3207,7 @@ function fitCanvasToViewport() {
   WORLD_HEIGHT = newH;
   canvas.width = newW;
   canvas.height = newH;
+  setCanvasSmoothingForTheme();
   canvas.style.width = `${newW}px`;
   canvas.style.height = `${newH}px`;
 
@@ -3138,6 +3283,7 @@ function updateWorldBounds(portraitMode, preserveObjects = true) {
   document.body.classList.toggle("portrait-mode", portraitMode);
   canvas.width = WORLD_WIDTH;
   canvas.height = WORLD_HEIGHT;
+  setCanvasSmoothingForTheme();
   canvas.style.width = `${WORLD_WIDTH}px`;
   canvas.style.height = `${WORLD_HEIGHT}px`;
 
@@ -4475,6 +4621,23 @@ function update(delta) {
 }
 
 function drawBackground() {
+  if (isCastleThemeActive()) {
+    const backgroundSprite = castleSprite("background");
+    if (backgroundSprite) {
+      const tileW = backgroundSprite.width * 3;
+      const tileH = backgroundSprite.height * 3;
+      const drift = (performance.now() * 0.012) % tileW;
+      for (let y = 0; y < WORLD_HEIGHT + tileH; y += tileH) {
+        for (let x = -tileW; x < WORLD_WIDTH + tileW; x += tileW) {
+          ctx.drawImage(backgroundSprite, x - drift, y, tileW, tileH);
+        }
+      }
+      ctx.fillStyle = "rgba(8,15,28,0.16)";
+      ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+      return;
+    }
+  }
+
   const theme = getTheme();
   const gradient = ctx.createLinearGradient(0, 0, 0, WORLD_HEIGHT);
   gradient.addColorStop(0, theme.bg.top);
@@ -4515,7 +4678,32 @@ function drawBricks() {
     const glow = brick.glow * 0.6;
     const brickRadius = theme.pixelMode ? 0 : 6;
 
-    if (theme.pixelMode) {
+    if (isCastleThemeActive()) {
+      const spriteName = brick.isGolden ? "brickGold" : castleBrickSpriteName(brick.code);
+      const brickSprite = castleSprite(spriteName);
+      if (brickSprite) {
+        ctx.drawImage(brickSprite, brick.x, brick.y, brick.w, brick.h);
+        if (brick.glow > 0.05) {
+          ctx.fillStyle = `rgba(255,244,165,${Math.min(0.42, brick.glow * 0.5)})`;
+          ctx.fillRect(brick.x + 1, brick.y + 1, Math.max(1, brick.w - 2), Math.max(1, brick.h - 2));
+        }
+      } else {
+        roundRect(brick.x, brick.y, brick.w, brick.h, brickRadius);
+        const grad = ctx.createLinearGradient(brick.x, brick.y, brick.x, brick.y + brick.h);
+        if (brick.isGolden) {
+          grad.addColorStop(0, `hsla(46, 95%, ${68 + glow * 18}%, 1)`);
+          grad.addColorStop(1, "hsla(35, 88%, 47%, 1)");
+        } else {
+          grad.addColorStop(0, `hsla(${palette.h}, ${palette.s}%, ${palette.l + 10 + glow * 15}%, 1)`);
+          grad.addColorStop(1, `hsla(${palette.h + 10}, ${Math.max(10, palette.s - 12)}%, ${palette.l - 8}%, 1)`);
+        }
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.strokeStyle = brick.isGolden ? "rgba(255,238,178,0.88)" : "rgba(255,255,255,0.3)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    } else if (theme.pixelMode) {
       const x = Math.round(brick.x);
       const y = Math.round(brick.y);
       const w = Math.round(brick.w);
@@ -4596,7 +4784,21 @@ function drawPaddle() {
   const pw = paddle.width;
   const ph = paddle.height;
 
-  if (theme.pixelMode) {
+  if (isCastleThemeActive()) {
+    const paddleSprite = castleSprite("paddle");
+    if (paddleSprite) {
+      ctx.drawImage(paddleSprite, px, py, pw, ph);
+    } else {
+      roundRect(px, py, pw, ph, 9);
+      const grad = ctx.createLinearGradient(px, py, px, py + ph);
+      grad.addColorStop(0, theme.paddle.top);
+      grad.addColorStop(1, theme.paddle.bot);
+      ctx.fillStyle = grad;
+      ctx.fill();
+      ctx.strokeStyle = theme.paddle.stroke;
+      ctx.stroke();
+    }
+  } else if (theme.pixelMode) {
     const x = Math.round(px);
     const y = Math.round(py);
     const w = Math.round(pw);
@@ -4707,14 +4909,31 @@ function drawPaddle() {
     const leftX = px + Math.min(15, pw * 0.16) - cannonW * 0.5;
     const rightX = px + pw - Math.min(15, pw * 0.16) - cannonW * 0.5;
     const cannonY = py - cannonH + 1;
-    ctx.fillStyle = theme.cannon.body;
-    roundRect(leftX, cannonY, cannonW, cannonH, 3);
-    ctx.fill();
-    roundRect(rightX, cannonY, cannonW, cannonH, 3);
-    ctx.fill();
-    ctx.fillStyle = theme.cannon.tip;
-    ctx.fillRect(leftX + cannonW * 0.32, cannonY - 5, cannonW * 0.36, 5);
-    ctx.fillRect(rightX + cannonW * 0.32, cannonY - 5, cannonW * 0.36, 5);
+    if (isCastleThemeActive()) {
+      const cannonSprite = castleSprite("cannon");
+      if (cannonSprite) {
+        ctx.drawImage(cannonSprite, leftX, cannonY, cannonW, cannonH);
+        ctx.drawImage(cannonSprite, rightX, cannonY, cannonW, cannonH);
+      } else {
+        ctx.fillStyle = theme.cannon.body;
+        roundRect(leftX, cannonY, cannonW, cannonH, 3);
+        ctx.fill();
+        roundRect(rightX, cannonY, cannonW, cannonH, 3);
+        ctx.fill();
+        ctx.fillStyle = theme.cannon.tip;
+        ctx.fillRect(leftX + cannonW * 0.32, cannonY - 5, cannonW * 0.36, 5);
+        ctx.fillRect(rightX + cannonW * 0.32, cannonY - 5, cannonW * 0.36, 5);
+      }
+    } else {
+      ctx.fillStyle = theme.cannon.body;
+      roundRect(leftX, cannonY, cannonW, cannonH, 3);
+      ctx.fill();
+      roundRect(rightX, cannonY, cannonW, cannonH, 3);
+      ctx.fill();
+      ctx.fillStyle = theme.cannon.tip;
+      ctx.fillRect(leftX + cannonW * 0.32, cannonY - 5, cannonW * 0.36, 5);
+      ctx.fillRect(rightX + cannonW * 0.32, cannonY - 5, cannonW * 0.36, 5);
+    }
   }
 }
 
@@ -4722,6 +4941,25 @@ function drawBalls() {
   const theme = getTheme();
   for (let i = 0; i < state.balls.length; i += 1) {
     const ball = state.balls[i];
+    if (isCastleThemeActive()) {
+      const ballSprite = castleSprite("ball");
+      if (ballSprite) {
+        const d = ball.radius * 2;
+        ctx.drawImage(ballSprite, ball.x - ball.radius, ball.y - ball.radius, d, d);
+      } else {
+        const r = Math.max(3, Math.round(ball.radius));
+        const x = Math.round(ball.x - r);
+        const y = Math.round(ball.y - r);
+        const size = r * 2;
+        ctx.fillStyle = "#7a0000";
+        ctx.fillRect(x - 1, y - 1, size + 2, size + 2);
+        ctx.fillStyle = "#ff1a1a";
+        ctx.fillRect(x, y, size, size);
+        ctx.fillStyle = "#ff9a9a";
+        ctx.fillRect(x + 1, y + 1, Math.max(2, Math.round(size * 0.35)), Math.max(2, Math.round(size * 0.35)));
+      }
+      continue;
+    }
     if (theme.pixelMode) {
       const r = Math.max(3, Math.round(ball.radius));
       const x = Math.round(ball.x - r);
@@ -4765,6 +5003,15 @@ function drawFireShots() {
   const theme = getTheme();
   for (let i = 0; i < state.fireShots.length; i += 1) {
     const shot = state.fireShots[i];
+    if (isCastleThemeActive()) {
+      const shotSprite = castleSprite("fireShot");
+      if (shotSprite) {
+        const w = shot.r * 2.4;
+        const h = shot.r * 4.8;
+        ctx.drawImage(shotSprite, shot.x - w * 0.5, shot.y - h * 0.35, w, h);
+        continue;
+      }
+    }
     const tail = 14;
     ctx.strokeStyle = theme.fire.tail;
     ctx.lineWidth = shot.r;
@@ -4787,6 +5034,27 @@ function drawFireShots() {
 function drawBonuses() {
   for (let i = 0; i < state.fallingBonuses.length; i += 1) {
     const bonus = state.fallingBonuses[i];
+    if (isCastleThemeActive()) {
+      const bonusSprite = castleSprite(castleBonusSpriteName(bonus.typeId));
+      if (bonusSprite) {
+        ctx.drawImage(
+          bonusSprite,
+          bonus.x - bonus.w * 0.5,
+          bonus.y - bonus.h * 0.5,
+          bonus.w,
+          bonus.h,
+        );
+        if (bonus.verb) {
+          ctx.font = "900 12px Nunito, Trebuchet MS, sans-serif";
+          ctx.fillStyle = "rgba(11,20,34,0.95)";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          const verbText = fitBrickLabel(bonus.verb.base.toUpperCase(), Math.max(18, bonus.w - 24));
+          ctx.fillText(verbText, bonus.x + 10, bonus.y + 1);
+        }
+        continue;
+      }
+    }
     roundRect(bonus.x - bonus.w * 0.5, bonus.y - bonus.h * 0.5, bonus.w, bonus.h, 8);
     const grad = ctx.createLinearGradient(
       bonus.x,
@@ -5431,6 +5699,12 @@ if (scoreEl) {
 difficultyButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
     setDifficulty(btn.dataset.difficulty || "normal", true);
+  });
+});
+
+themeButtons.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    setThemeFromSettingsChoice(btn.dataset.theme || "classic");
   });
 });
 
