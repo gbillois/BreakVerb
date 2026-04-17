@@ -163,18 +163,18 @@ const KAWAII_THEME_ASSETS = {
 };
 const kawaiiThemeImages = {};
 const KAWAII_BRICK_ITEMS = [
-  { sprite: "itemCat", sizeX: 1.16, sizeY: 1.34, hitX: 0.64, hitY: 0.68, hitOffsetY: 0.04, tier: "large", rarity: 0.55 },
-  { sprite: "itemShaker", sizeX: 0.88, sizeY: 1.36, hitX: 0.54, hitY: 0.72, hitOffsetY: 0.02, tier: "medium", rarity: 0.95 },
-  { sprite: "itemPear", sizeX: 0.92, sizeY: 1.26, hitX: 0.58, hitY: 0.66, hitOffsetY: 0.05, tier: "medium", rarity: 0.9 },
-  { sprite: "itemBow", sizeX: 1.20, sizeY: 1.06, hitX: 0.76, hitY: 0.60, hitOffsetY: -0.04, tier: "large", rarity: 0.5 },
-  { sprite: "itemCup", sizeX: 0.96, sizeY: 1.30, hitX: 0.60, hitY: 0.72, hitOffsetY: 0.04, tier: "medium", rarity: 0.95 },
-  { sprite: "itemEnvelope", sizeX: 1.24, sizeY: 0.96, hitX: 0.78, hitY: 0.58, hitOffsetY: -0.02, tier: "large", rarity: 0.45 },
-  { sprite: "itemConsole", sizeX: 1.12, sizeY: 1.04, hitX: 0.76, hitY: 0.62, hitOffsetY: 0.01, tier: "medium", rarity: 0.85 },
-  { sprite: "itemDonut", sizeX: 1.00, sizeY: 1.04, hitX: 0.62, hitY: 0.62, hitOffsetY: 0.01, tier: "medium", rarity: 1.1 },
-  { sprite: "itemPopcorn", sizeX: 1.08, sizeY: 1.30, hitX: 0.66, hitY: 0.72, hitOffsetY: 0.05, tier: "large", rarity: 0.42 },
-  { sprite: "itemStar", sizeX: 0.94, sizeY: 1.06, hitX: 0.55, hitY: 0.62, hitOffsetY: -0.01, tier: "small", rarity: 1.35 },
-  { sprite: "itemFlower", sizeX: 1.12, sizeY: 1.16, hitX: 0.68, hitY: 0.66, hitOffsetY: 0.01, tier: "medium", rarity: 1.05 },
-  { sprite: "itemCandy", sizeX: 1.10, sizeY: 0.96, hitX: 0.72, hitY: 0.56, hitOffsetY: -0.02, tier: "small", rarity: 1.3 },
+  { sprite: "itemCat", sizeX: 1.00, sizeY: 1.10, hitX: 0.64, hitY: 0.68, hitOffsetY: 0.04, tier: "large", rarity: 0.55 },
+  { sprite: "itemShaker", sizeX: 0.82, sizeY: 1.16, hitX: 0.54, hitY: 0.72, hitOffsetY: 0.02, tier: "medium", rarity: 0.95 },
+  { sprite: "itemPear", sizeX: 0.88, sizeY: 1.10, hitX: 0.58, hitY: 0.66, hitOffsetY: 0.05, tier: "medium", rarity: 0.9 },
+  { sprite: "itemBow", sizeX: 1.06, sizeY: 0.92, hitX: 0.76, hitY: 0.60, hitOffsetY: -0.04, tier: "large", rarity: 0.5 },
+  { sprite: "itemCup", sizeX: 0.86, sizeY: 1.12, hitX: 0.60, hitY: 0.72, hitOffsetY: 0.04, tier: "medium", rarity: 0.95 },
+  { sprite: "itemEnvelope", sizeX: 1.10, sizeY: 0.84, hitX: 0.78, hitY: 0.58, hitOffsetY: -0.02, tier: "large", rarity: 0.45 },
+  { sprite: "itemConsole", sizeX: 1.02, sizeY: 0.90, hitX: 0.76, hitY: 0.62, hitOffsetY: 0.01, tier: "medium", rarity: 0.85 },
+  { sprite: "itemDonut", sizeX: 0.92, sizeY: 0.92, hitX: 0.62, hitY: 0.62, hitOffsetY: 0.01, tier: "medium", rarity: 1.1 },
+  { sprite: "itemPopcorn", sizeX: 0.94, sizeY: 1.12, hitX: 0.66, hitY: 0.72, hitOffsetY: 0.05, tier: "large", rarity: 0.42 },
+  { sprite: "itemStar", sizeX: 0.86, sizeY: 0.92, hitX: 0.55, hitY: 0.62, hitOffsetY: -0.01, tier: "small", rarity: 1.35 },
+  { sprite: "itemFlower", sizeX: 0.96, sizeY: 0.96, hitX: 0.68, hitY: 0.66, hitOffsetY: 0.01, tier: "medium", rarity: 1.05 },
+  { sprite: "itemCandy", sizeX: 0.98, sizeY: 0.84, hitX: 0.72, hitY: 0.56, hitOffsetY: -0.02, tier: "small", rarity: 1.3 },
 ];
 
 const THEMES = {
@@ -452,7 +452,8 @@ function isKawaiiThemeActive() { return activeThemeId === QUICK_THEME_KAWAII_ID;
 function isCustomPixelThemeActive() { return isCastleThemeActive() || isKawaiiThemeActive(); }
 
 function setCanvasSmoothingForTheme() {
-  ctx.imageSmoothingEnabled = !isCustomPixelThemeActive();
+  // Keep castle crisp, but render kawaii in smoother high-quality mode.
+  ctx.imageSmoothingEnabled = !isCastleThemeActive();
 }
 
 function loadImage(src) {
@@ -606,6 +607,26 @@ function getBrickVisualRect(brick) {
   const h = brick.h * scaleY;
   const x = brick.x + (brick.w - w) * 0.5;
   const y = brick.y + (brick.h - h) * 0.5;
+  return { x, y, w, h };
+}
+
+function fitSpriteContain(srcW, srcH, dstX, dstY, dstW, dstH, insetRatio = 0) {
+  const inset = Math.max(0, insetRatio) * Math.min(dstW, dstH);
+  const boxX = dstX + inset * 0.5;
+  const boxY = dstY + inset * 0.5;
+  const boxW = Math.max(1, dstW - inset);
+  const boxH = Math.max(1, dstH - inset);
+  const srcRatio = Math.max(0.001, srcW / srcH);
+  const boxRatio = boxW / boxH;
+  let w = boxW;
+  let h = boxH;
+  if (srcRatio > boxRatio) {
+    h = boxW / srcRatio;
+  } else {
+    w = boxH * srcRatio;
+  }
+  const x = boxX + (boxW - w) * 0.5;
+  const y = boxY + (boxH - h) * 0.5;
   return { x, y, w, h };
 }
 
@@ -5189,10 +5210,22 @@ function drawBricks() {
       const brickSprite = customThemeSprite(spriteName);
       const visual = getBrickVisualRect(brick);
       if (brickSprite) {
-        ctx.drawImage(brickSprite, visual.x, visual.y, visual.w, visual.h);
+        let drawRect = visual;
+        if (isKawaiiThemeActive()) {
+          drawRect = fitSpriteContain(
+            brickSprite.width,
+            brickSprite.height,
+            visual.x,
+            visual.y,
+            visual.w,
+            visual.h,
+            0.02,
+          );
+        }
+        ctx.drawImage(brickSprite, drawRect.x, drawRect.y, drawRect.w, drawRect.h);
         if (brick.glow > 0.05) {
           ctx.fillStyle = `rgba(255,244,165,${Math.min(0.42, brick.glow * 0.5)})`;
-          ctx.fillRect(visual.x + 1, visual.y + 1, Math.max(1, visual.w - 2), Math.max(1, visual.h - 2));
+          ctx.fillRect(drawRect.x + 1, drawRect.y + 1, Math.max(1, drawRect.w - 2), Math.max(1, drawRect.h - 2));
         }
       } else {
         roundRect(brick.x, brick.y, brick.w, brick.h, brickRadius);
