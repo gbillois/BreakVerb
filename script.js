@@ -107,7 +107,7 @@ const SCORE_HOLD_CHEAT_DELAY_MS = 2600;
 const HOLD_SCORE_CHEAT_COINS = 9999;
 const THEME_PRICE = 50;
 const SHOP_FREE_FOR_TESTS = true;
-const ASSET_NO_CACHE = "2026-04-17a";
+const ASSET_NO_CACHE = "2026-04-17c";
 const TEST_DISABLE_APP_CACHE = true;
 const QUICK_THEME_CLASSIC_ID = "modern_english";
 const QUICK_THEME_CASTLE_ID = "castle_fantasy";
@@ -148,8 +148,34 @@ const KAWAII_THEME_ASSETS = {
   bonusMultiball: "assets/pixel-kawaii/bonus_multiball.png",
   bonusExtraLife: "assets/pixel-kawaii/bonus_extra_life.png",
   bonusSlowBall: "assets/pixel-kawaii/bonus_slow_ball.png",
+  itemCat: "assets/pixel-kawaii/item_cat.png",
+  itemShaker: "assets/pixel-kawaii/item_shaker.png",
+  itemPear: "assets/pixel-kawaii/item_pear.png",
+  itemBow: "assets/pixel-kawaii/item_bow.png",
+  itemCup: "assets/pixel-kawaii/item_cup.png",
+  itemEnvelope: "assets/pixel-kawaii/item_envelope.png",
+  itemConsole: "assets/pixel-kawaii/item_console.png",
+  itemDonut: "assets/pixel-kawaii/item_donut.png",
+  itemPopcorn: "assets/pixel-kawaii/item_popcorn.png",
+  itemStar: "assets/pixel-kawaii/item_star.png",
+  itemFlower: "assets/pixel-kawaii/item_flower.png",
+  itemCandy: "assets/pixel-kawaii/item_candy.png",
 };
 const kawaiiThemeImages = {};
+const KAWAII_BRICK_ITEMS = [
+  { sprite: "itemCat", sizeX: 1.16, sizeY: 1.34, hitX: 0.64, hitY: 0.68, hitOffsetY: 0.04, tier: "large", rarity: 0.55 },
+  { sprite: "itemShaker", sizeX: 0.88, sizeY: 1.36, hitX: 0.54, hitY: 0.72, hitOffsetY: 0.02, tier: "medium", rarity: 0.95 },
+  { sprite: "itemPear", sizeX: 0.92, sizeY: 1.26, hitX: 0.58, hitY: 0.66, hitOffsetY: 0.05, tier: "medium", rarity: 0.9 },
+  { sprite: "itemBow", sizeX: 1.20, sizeY: 1.06, hitX: 0.76, hitY: 0.60, hitOffsetY: -0.04, tier: "large", rarity: 0.5 },
+  { sprite: "itemCup", sizeX: 0.96, sizeY: 1.30, hitX: 0.60, hitY: 0.72, hitOffsetY: 0.04, tier: "medium", rarity: 0.95 },
+  { sprite: "itemEnvelope", sizeX: 1.24, sizeY: 0.96, hitX: 0.78, hitY: 0.58, hitOffsetY: -0.02, tier: "large", rarity: 0.45 },
+  { sprite: "itemConsole", sizeX: 1.12, sizeY: 1.04, hitX: 0.76, hitY: 0.62, hitOffsetY: 0.01, tier: "medium", rarity: 0.85 },
+  { sprite: "itemDonut", sizeX: 1.00, sizeY: 1.04, hitX: 0.62, hitY: 0.62, hitOffsetY: 0.01, tier: "medium", rarity: 1.1 },
+  { sprite: "itemPopcorn", sizeX: 1.08, sizeY: 1.30, hitX: 0.66, hitY: 0.72, hitOffsetY: 0.05, tier: "large", rarity: 0.42 },
+  { sprite: "itemStar", sizeX: 0.94, sizeY: 1.06, hitX: 0.55, hitY: 0.62, hitOffsetY: -0.01, tier: "small", rarity: 1.35 },
+  { sprite: "itemFlower", sizeX: 1.12, sizeY: 1.16, hitX: 0.68, hitY: 0.66, hitOffsetY: 0.01, tier: "medium", rarity: 1.05 },
+  { sprite: "itemCandy", sizeX: 1.10, sizeY: 0.96, hitX: 0.72, hitY: 0.56, hitOffsetY: -0.02, tier: "small", rarity: 1.3 },
+];
 
 const THEMES = {
   modern_english: {
@@ -490,12 +516,86 @@ function castleBonusSpriteName(typeId) {
   return "bonusLongPaddle";
 }
 
-function customBrickSpriteName(code) {
+function customBrickSpriteName(code, brick = null) {
+  if (isKawaiiThemeActive() && brick && brick.kawaiiItem && brick.kawaiiItem.sprite) {
+    return brick.kawaiiItem.sprite;
+  }
   return castleBrickSpriteName(code);
 }
 
 function customBonusSpriteName(typeId) {
   return castleBonusSpriteName(typeId);
+}
+
+function pickKawaiiBrickItem(indexSeed = 0) {
+  const index = Math.abs(indexSeed) % KAWAII_BRICK_ITEMS.length;
+  return KAWAII_BRICK_ITEMS[index];
+}
+
+function pickKawaiiBrickItemWeighted(generatorState) {
+  if (!generatorState || !Array.isArray(KAWAII_BRICK_ITEMS) || KAWAII_BRICK_ITEMS.length === 0) {
+    return pickKawaiiBrickItem(0);
+  }
+
+  const weighted = [];
+  for (let i = 0; i < KAWAII_BRICK_ITEMS.length; i += 1) {
+    const item = KAWAII_BRICK_ITEMS[i];
+    let weight = Math.max(0.05, Number(item.rarity) || 1);
+    const tier = item.tier || "medium";
+
+    if (tier === "large") {
+      if (generatorState.largeUsed >= generatorState.largeQuota) continue;
+      weight *= 0.52;
+      if (generatorState.largeCooldown > 0) weight *= 0.22;
+      if (generatorState.placed < generatorState.earlyPhaseCutoff) weight *= 0.48;
+    } else if (tier === "small") {
+      weight *= 1.28;
+      if (generatorState.largeCooldown > 0) weight *= 1.22;
+    } else {
+      if (generatorState.largeCooldown > 0) weight *= 1.08;
+    }
+
+    const used = generatorState.usedBySprite[item.sprite] || 0;
+    weight *= 1 / (1 + used * 0.34);
+    weighted.push({ item, weight });
+  }
+
+  if (weighted.length === 0) {
+    return pickKawaiiBrickItem(generatorState.placed);
+  }
+
+  const chosen = randomWeightedItem(weighted, "weight").item;
+  generatorState.placed += 1;
+  generatorState.usedBySprite[chosen.sprite] = (generatorState.usedBySprite[chosen.sprite] || 0) + 1;
+  if ((chosen.tier || "medium") === "large") {
+    generatorState.largeUsed += 1;
+    generatorState.largeCooldown = 2;
+  } else {
+    generatorState.largeCooldown = Math.max(0, generatorState.largeCooldown - 1);
+  }
+  return chosen;
+}
+
+function getBrickHitRect(brick) {
+  const hitScaleX = clamp(Number(brick.hitScaleX) || 1, 0.25, 1.4);
+  const hitScaleY = clamp(Number(brick.hitScaleY) || 1, 0.25, 1.4);
+  const hitOffsetX = Number(brick.hitOffsetX) || 0;
+  const hitOffsetY = Number(brick.hitOffsetY) || 0;
+  const w = brick.w * hitScaleX;
+  const h = brick.h * hitScaleY;
+  const x = brick.x + (brick.w - w) * 0.5 + brick.w * hitOffsetX;
+  const y = brick.y + (brick.h - h) * 0.5 + brick.h * hitOffsetY;
+  return { x, y, w, h };
+}
+
+function getBrickVisualRect(brick) {
+  const scaleX = Math.max(0.5, Number(brick.renderScaleX) || 1);
+  const scaleY = Math.max(0.5, Number(brick.renderScaleY) || 1);
+  const w = brick.w * scaleX;
+  const h = brick.h * scaleY;
+  const x = brick.x + (brick.w - w) * 0.5;
+  const y = brick.y + (brick.h - h) * 0.5;
+  return { x, y, w, h };
 }
 
 const ambientParticles = [];
@@ -3881,6 +3981,14 @@ function createBricks(level) {
       const hasBonus = bonusSlots.has(activeIdx);
       const bonusType = hasBonus ? randomWeightedItem(BONUS_TYPES) : null;
       const isGolden = activeIdx === goldenSlot;
+      const kawaiiItem = isKawaiiThemeActive()
+        ? pickKawaiiBrickItem(activeIdx + level * 17 + r * 13 + c * 7)
+        : null;
+      const renderScaleX = kawaiiItem ? kawaiiItem.sizeX : 1;
+      const renderScaleY = kawaiiItem ? kawaiiItem.sizeY : 1;
+      const hitScaleX = kawaiiItem ? kawaiiItem.hitX : 1;
+      const hitScaleY = kawaiiItem ? kawaiiItem.hitY : 1;
+      const hitOffsetY = kawaiiItem ? kawaiiItem.hitOffsetY : 0;
       bricks.push({
         x,
         y,
@@ -3893,6 +4001,13 @@ function createBricks(level) {
         hasBonus,
         bonusType,
         verb: hasBonus ? bonusVerbs[verbIdx] : null,
+        kawaiiItem,
+        renderScaleX,
+        renderScaleY,
+        hitScaleX,
+        hitScaleY,
+        hitOffsetX: 0,
+        hitOffsetY,
         active: true,
         glow: 0,
         row: r,
@@ -4652,31 +4767,32 @@ function nextLevel() {
 }
 
 function detectBallBrickCollision(ball, brick) {
-  const closestX = clamp(ball.x, brick.x, brick.x + brick.w);
-  const closestY = clamp(ball.y, brick.y, brick.y + brick.h);
+  const hit = getBrickHitRect(brick);
+  const closestX = clamp(ball.x, hit.x, hit.x + hit.w);
+  const closestY = clamp(ball.y, hit.y, hit.y + hit.h);
   const dx = ball.x - closestX;
   const dy = ball.y - closestY;
   if (dx * dx + dy * dy > ball.radius * ball.radius) return null;
 
-  const overlapLeft = Math.abs(ball.x + ball.radius - brick.x);
-  const overlapRight = Math.abs(brick.x + brick.w - (ball.x - ball.radius));
-  const overlapTop = Math.abs(ball.y + ball.radius - brick.y);
-  const overlapBottom = Math.abs(brick.y + brick.h - (ball.y - ball.radius));
+  const overlapLeft = Math.abs(ball.x + ball.radius - hit.x);
+  const overlapRight = Math.abs(hit.x + hit.w - (ball.x - ball.radius));
+  const overlapTop = Math.abs(ball.y + ball.radius - hit.y);
+  const overlapBottom = Math.abs(hit.y + hit.h - (ball.y - ball.radius));
   const minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
 
   if (minOverlap === overlapLeft) {
-    ball.x = brick.x - ball.radius - 0.5;
+    ball.x = hit.x - ball.radius - 0.5;
     return "x";
   }
   if (minOverlap === overlapRight) {
-    ball.x = brick.x + brick.w + ball.radius + 0.5;
+    ball.x = hit.x + hit.w + ball.radius + 0.5;
     return "x";
   }
   if (minOverlap === overlapTop) {
-    ball.y = brick.y - ball.radius - 0.5;
+    ball.y = hit.y - ball.radius - 0.5;
     return "y";
   }
-  ball.y = brick.y + brick.h + ball.radius + 0.5;
+  ball.y = hit.y + hit.h + ball.radius + 0.5;
   return "y";
 }
 
@@ -4756,8 +4872,9 @@ function updateSuperCannons(delta) {
 }
 
 function projectileHitsBrick(shot, brick) {
-  const closestX = clamp(shot.x, brick.x, brick.x + brick.w);
-  const closestY = clamp(shot.y, brick.y, brick.y + brick.h);
+  const hit = getBrickHitRect(brick);
+  const closestX = clamp(shot.x, hit.x, hit.x + hit.w);
+  const closestY = clamp(shot.y, hit.y, hit.y + hit.h);
   const dx = shot.x - closestX;
   const dy = shot.y - closestY;
   return dx * dx + dy * dy <= shot.r * shot.r;
@@ -5039,13 +5156,14 @@ function drawBricks() {
     const brickRadius = theme.pixelMode ? 0 : 6;
 
     if (isCustomPixelThemeActive()) {
-      const spriteName = brick.isGolden ? "brickGold" : customBrickSpriteName(brick.code);
+      const spriteName = brick.isGolden ? "brickGold" : customBrickSpriteName(brick.code, brick);
       const brickSprite = customThemeSprite(spriteName);
+      const visual = getBrickVisualRect(brick);
       if (brickSprite) {
-        ctx.drawImage(brickSprite, brick.x, brick.y, brick.w, brick.h);
+        ctx.drawImage(brickSprite, visual.x, visual.y, visual.w, visual.h);
         if (brick.glow > 0.05) {
           ctx.fillStyle = `rgba(255,244,165,${Math.min(0.42, brick.glow * 0.5)})`;
-          ctx.fillRect(brick.x + 1, brick.y + 1, Math.max(1, brick.w - 2), Math.max(1, brick.h - 2));
+          ctx.fillRect(visual.x + 1, visual.y + 1, Math.max(1, visual.w - 2), Math.max(1, visual.h - 2));
         }
       } else {
         roundRect(brick.x, brick.y, brick.w, brick.h, brickRadius);
@@ -5109,6 +5227,40 @@ function drawBricks() {
       roundRect(brick.x, brick.y, brick.w, brick.h, brickRadius);
       ctx.stroke();
       ctx.restore();
+    }
+
+    if (isKawaiiThemeActive()) {
+      if (brick.verb) {
+        const visual = getBrickVisualRect(brick);
+        const tagW = clamp(visual.w * 0.54, 36, 86);
+        const tagH = clamp(visual.h * 0.28, 12, 20);
+        const tagX = visual.x + visual.w - tagW - 2;
+        const tagY = visual.y + 2;
+        roundRect(tagX, tagY, tagW, tagH, 3);
+        const tagGrad = ctx.createLinearGradient(tagX, tagY, tagX, tagY + tagH);
+        tagGrad.addColorStop(0, "rgba(255,249,255,0.96)");
+        tagGrad.addColorStop(1, "rgba(255,206,230,0.92)");
+        ctx.fillStyle = tagGrad;
+        ctx.fill();
+        ctx.strokeStyle = "rgba(121,94,182,0.95)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.font = `900 ${Math.max(8, Math.round(tagH * 0.62))}px Nunito, Trebuchet MS, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        const label = fitBrickLabel(brick.verb.base.toUpperCase(), tagW - 6);
+        ctx.fillStyle = "rgba(121,94,182,0.95)";
+        ctx.fillText(label, tagX + tagW * 0.5, tagY + tagH * 0.55);
+      } else if (brick.isGolden) {
+        const visual = getBrickVisualRect(brick);
+        ctx.font = `900 ${Math.max(11, Math.round(visual.h * 0.48))}px Nunito, Trebuchet MS, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "rgba(121,94,182,0.94)";
+        ctx.fillText("*", visual.x + visual.w * 0.5, visual.y + visual.h * 0.5);
+      }
+      continue;
     }
 
     if (brick.verb) {
