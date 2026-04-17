@@ -109,6 +109,7 @@ const THEME_PRICE = 50;
 const SHOP_FREE_FOR_TESTS = true;
 const QUICK_THEME_CLASSIC_ID = "modern_english";
 const QUICK_THEME_CASTLE_ID = "castle_fantasy";
+const QUICK_THEME_KAWAII_ID = "kawaii_pinky";
 const CASTLE_THEME_ASSETS = {
   background: "assets/pixel-castle/bg_castle.png",
   paddle: "assets/pixel-castle/paddle.png",
@@ -128,6 +129,25 @@ const CASTLE_THEME_ASSETS = {
   bonusSlowBall: "assets/pixel-castle/bonus_slow_ball.png",
 };
 const castleThemeImages = {};
+const KAWAII_THEME_ASSETS = {
+  background: "assets/pixel-kawaii/bg_kawaii.png",
+  paddle: "assets/pixel-kawaii/paddle.png",
+  cannon: "assets/pixel-kawaii/cannon.png",
+  ball: "assets/pixel-kawaii/ball.png",
+  fireShot: "assets/pixel-kawaii/fire_shot.png",
+  brickGold: "assets/pixel-kawaii/brick_gold.png",
+  brickR: "assets/pixel-kawaii/brick_R.png",
+  brickW: "assets/pixel-kawaii/brick_W.png",
+  brickB: "assets/pixel-kawaii/brick_B.png",
+  brickY: "assets/pixel-kawaii/brick_Y.png",
+  brickG: "assets/pixel-kawaii/brick_G.png",
+  brickD: "assets/pixel-kawaii/brick_D.png",
+  bonusLongPaddle: "assets/pixel-kawaii/bonus_long_paddle.png",
+  bonusMultiball: "assets/pixel-kawaii/bonus_multiball.png",
+  bonusExtraLife: "assets/pixel-kawaii/bonus_extra_life.png",
+  bonusSlowBall: "assets/pixel-kawaii/bonus_slow_ball.png",
+};
+const kawaiiThemeImages = {};
 
 const THEMES = {
   modern_english: {
@@ -188,6 +208,36 @@ const THEMES = {
     cssCanvasBg: "linear-gradient(180deg, #111f49, #122b5a 34%, #173b6c)",
     cssBgDeep: "#1a1644",
     cssBgMid: "#2d2a68",
+  },
+  kawaii_pinky: {
+    id: "kawaii_pinky",
+    name_fr: "Pinky Kawaï",
+    name_en: "Pinky Kawaii",
+    desc_fr: "Pixel art pastel inspiré du Japon : coeur, sakura et bonbons mignons.",
+    desc_en: "Pastel Japan-inspired pixel art with hearts, sakura and cute candy vibes.",
+    price: 0,
+    unlocked: true,
+    preview: "\u{1F338}",
+    bg: { top: "#f8d9ea", mid: "#cdefff", bot: "#b9eaf8" },
+    bgLines: { color: "#ffffff", alpha: 0, count: 0 },
+    paddle: { top: "#ffb6d8", bot: "#ef8fbe", stroke: "rgba(255,235,249,0.9)" },
+    ball: { center: "#fff7fc", edge: "#ffb5d8", glow: "#ffb5d8", glowAlpha: 0.28 },
+    brickColors: {
+      R: { h: 335, s: 85, l: 71, text: "#fff7fd" },
+      W: { h: 280, s: 30, l: 92, text: "#5f5687" },
+      B: { h: 199, s: 86, l: 74, text: "#f3fcff" },
+      Y: { h: 46, s: 95, l: 74, text: "#5d4f32" },
+      G: { h: 150, s: 56, l: 70, text: "#f4fff9" },
+      D: { h: 263, s: 68, l: 79, text: "#f8f2ff" },
+    },
+    particle: { colors: ["#ffb6d8", "#b9e8ff", "#ffeaa8", "#cebfff"] },
+    fire: { tail: "rgba(255,164,210,0.7)", headCenter: "#fffde7", headEdge: "#ffb7da", barrel: "#c6b0ef", tip: "#ffd8ab" },
+    cannon: { body: "#c6b0ef", tip: "#ffd8ab" },
+    ambient: "stars",
+    pixelMode: true,
+    cssCanvasBg: "linear-gradient(180deg, #f7d7e9, #caecff 40%, #b7e8f8)",
+    cssBgDeep: "#6f4f9d",
+    cssBgMid: "#7a63b4",
   },
   retro_pixel: {
     id: "retro_pixel",
@@ -370,9 +420,11 @@ const THEMES = {
 let activeThemeId = "modern_english";
 function getTheme() { return THEMES[activeThemeId] || THEMES.modern_english; }
 function isCastleThemeActive() { return activeThemeId === QUICK_THEME_CASTLE_ID; }
+function isKawaiiThemeActive() { return activeThemeId === QUICK_THEME_KAWAII_ID; }
+function isCustomPixelThemeActive() { return isCastleThemeActive() || isKawaiiThemeActive(); }
 
 function setCanvasSmoothingForTheme() {
-  ctx.imageSmoothingEnabled = !isCastleThemeActive();
+  ctx.imageSmoothingEnabled = !isCustomPixelThemeActive();
 }
 
 function loadImage(src) {
@@ -398,6 +450,25 @@ function castleSprite(name) {
   return castleThemeImages[name] || null;
 }
 
+async function loadKawaiiThemeAssets() {
+  const entries = Object.entries(KAWAII_THEME_ASSETS);
+  const loaded = await Promise.all(entries.map(async ([key, src]) => [key, await loadImage(src)]));
+  for (let i = 0; i < loaded.length; i += 1) {
+    const [key, img] = loaded[i];
+    if (img) kawaiiThemeImages[key] = img;
+  }
+}
+
+function kawaiiSprite(name) {
+  return kawaiiThemeImages[name] || null;
+}
+
+function customThemeSprite(name) {
+  if (isCastleThemeActive()) return castleSprite(name);
+  if (isKawaiiThemeActive()) return kawaiiSprite(name);
+  return null;
+}
+
 function castleBrickSpriteName(code) {
   const key = `${code || "D"}`.toUpperCase();
   if (key === "R") return "brickR";
@@ -414,6 +485,14 @@ function castleBonusSpriteName(typeId) {
   if (typeId === "extra_life") return "bonusExtraLife";
   if (typeId === "slow_ball") return "bonusSlowBall";
   return "bonusLongPaddle";
+}
+
+function customBrickSpriteName(code) {
+  return castleBrickSpriteName(code);
+}
+
+function customBonusSpriteName(typeId) {
+  return castleBonusSpriteName(typeId);
 }
 
 const ambientParticles = [];
@@ -465,6 +544,7 @@ const I18N = {
     theme_title: "Thème visuel",
     theme_classic_btn: "Classique",
     theme_castle_btn: "Castle Fantasy",
+    theme_kawaii_btn: "Pinky Kawaï",
     difficulty_hint: "Facile: illimité • Normal: 10s • Expert: 5s",
     difficulty_easy: "Chill",
     difficulty_normal: "Normal",
@@ -570,6 +650,7 @@ const I18N = {
     theme_title: "Visual theme",
     theme_classic_btn: "Classic",
     theme_castle_btn: "Castle Fantasy",
+    theme_kawaii_btn: "Pinky Kawaii",
     difficulty_hint: "Chill: unlimited • Normal: 10s • Hardcore: 5s",
     difficulty_easy: "Chill",
     difficulty_normal: "Normal",
@@ -698,6 +779,7 @@ canvas.width = WORLD_WIDTH;
 canvas.height = WORLD_HEIGHT;
 setCanvasSmoothingForTheme();
 loadCastleThemeAssets();
+loadKawaiiThemeAssets();
 
 const IRREGULAR_VERBS = [
   { base: "be", past: "was/were", pp: "been" },
@@ -2355,6 +2437,233 @@ const THEME_PATTERNS = {
       ],
     },
   ],
+  kawaii_pinky: [
+    {
+      name: "Kawaii - Sakura",
+      grid: [
+        "...R..R.....",
+        "..RRRRRR....",
+        ".RRRYYRRR...",
+        "..RRRRRR....",
+        "...R..R.....",
+        ".....GG.....",
+        "....GGGG....",
+        ".....GG.....",
+        "............",
+        "............",
+      ],
+    },
+    {
+      name: "Kawaii - Maneki Neko",
+      grid: [
+        "...WWWWWW...",
+        "..WWWWWWWW..",
+        "..WBBWWBBW..",
+        "..WWWWWWWW..",
+        "..WWRWWRWW..",
+        "...WWWWWW...",
+        "...WYYYYW...",
+        "..WWYYYYWW..",
+        "............",
+        "............",
+      ],
+    },
+    {
+      name: "Kawaii - Bento",
+      grid: [
+        ".BBBBBBBBBB.",
+        ".BWWWWWWWWB.",
+        ".BWRRWWRRWB.",
+        ".BWGGYYGGWB.",
+        ".BWGGYYGGWB.",
+        ".BWWWWWWWWB.",
+        ".BBBBBBBBBB.",
+        "............",
+        "............",
+        "............",
+      ],
+    },
+    {
+      name: "Kawaii - Bubble Tea",
+      grid: [
+        ".....BB.....",
+        "....BBBB....",
+        "...BBBBBB...",
+        "...BRRRRB...",
+        "..BBRRRRBB..",
+        "..BBRRRRBB..",
+        "..BBYYYYBB..",
+        "...BYYYYB...",
+        "...BB..BB...",
+        "....B..B....",
+      ],
+    },
+    {
+      name: "Kawaii - Strawberry",
+      grid: [
+        ".....GG.....",
+        "....GGGG....",
+        "...RRRRRR...",
+        "..RRRRRRRR..",
+        ".RRRYYRRRRR.",
+        ".RRRRRRRRRR.",
+        "..RRRRRRRR..",
+        "...RRRRRR...",
+        "....RRRR....",
+        ".....RR.....",
+      ],
+    },
+    {
+      name: "Kawaii - Envelope",
+      grid: [
+        ".WWWWWWWWWW.",
+        ".WBBBBBBBBW.",
+        ".WBWWWWWWBW.",
+        ".WBWYYYYWBW.",
+        ".WBWWWWWWBW.",
+        ".WBBBBBBBBW.",
+        ".WWWWWWWWWW.",
+        "............",
+        "............",
+        "............",
+      ],
+    },
+    {
+      name: "Kawaii - Cherry",
+      grid: [
+        "....GG..GG..",
+        "...GGGGGGGG.",
+        "..GGG....GG.",
+        "...R......R.",
+        "..RRR....RRR",
+        ".RRRRR..RRRR",
+        ".RRRRR..RRRR",
+        "..RRR....RRR",
+        "............",
+        "............",
+      ],
+    },
+    {
+      name: "Kawaii - Donut",
+      grid: [
+        "....RRRR....",
+        "..RRRRRRRR..",
+        ".RRRRYYRRRR.",
+        ".RRRYYYYRRR.",
+        ".RRRYYYYRRR.",
+        ".RRRRYYRRRR.",
+        "..RRRRRRRR..",
+        "....RRRR....",
+        "............",
+        "............",
+      ],
+    },
+    {
+      name: "Kawaii - Controller",
+      grid: [
+        "............",
+        "..BBBBBBBB..",
+        ".BBWWWWWWBB.",
+        ".BWWWWWWWWB.",
+        ".BWWBGGWWWB.",
+        ".BWWWWWWWWB.",
+        ".BBWWWWWWBB.",
+        "..BBBBBBBB..",
+        "............",
+        "............",
+      ],
+    },
+    {
+      name: "Kawaii - Heart Chat",
+      grid: [
+        "..WWWWWWWW..",
+        ".WWWWWWWWWW.",
+        ".WWRR..RRWW.",
+        ".WWRRRRRRWW.",
+        ".WWRRRRRRWW.",
+        ".WWWWWWWWWW.",
+        "..WWWWWWWW..",
+        "...WW..WW...",
+        "............",
+        "............",
+      ],
+    },
+    {
+      name: "Kawaii - Candy",
+      grid: [
+        "....D..D....",
+        "...DD..DD...",
+        "..DDRRRRDD..",
+        ".DDRRRRRRDD.",
+        ".DDRRYYRRDD.",
+        "..DDRRRRDD..",
+        "...DD..DD...",
+        "....D..D....",
+        "............",
+        "............",
+      ],
+    },
+    {
+      name: "Kawaii - Pixel Flower",
+      grid: [
+        "....R..R....",
+        "...RYYYYR...",
+        "..RYYYYYYR..",
+        "..YYYYYYYY..",
+        "..YYYYYYYY..",
+        "..RYYYYYYR..",
+        "...RYYYYR...",
+        "....R..R....",
+        ".....GG.....",
+        ".....GG.....",
+      ],
+    },
+    {
+      name: "Kawaii - Cat Face",
+      grid: [
+        "..W......W..",
+        ".WW......WW.",
+        ".WWWWWWWWWW.",
+        "WWWWWWWWWWWW",
+        "WWBBWWWWBBWW",
+        "WWWWWWWWWWWW",
+        ".WWWRWWRWWW.",
+        "..WWWWWWWW..",
+        "............",
+        "............",
+      ],
+    },
+    {
+      name: "Kawaii - Gameboy",
+      grid: [
+        "..BBBBBBBB..",
+        ".BBWWWWWWBB.",
+        ".BBWYYYYWBB.",
+        ".BBWYYYYWBB.",
+        ".BBWWWWWWBB.",
+        ".BBGG..GGBB.",
+        ".BBG....GBB.",
+        ".BBWWWWWWBB.",
+        "..BBBBBBBB..",
+        "............",
+      ],
+    },
+    {
+      name: "Kawaii - Lucky Charm",
+      grid: [
+        ".....YY.....",
+        "....YYYY....",
+        "...YYRRYY...",
+        "..YYRRRRYY..",
+        ".YYRRRRRRYY.",
+        "..YYRRRRYY..",
+        "...YYRRYY...",
+        "....YYYY....",
+        ".....YY.....",
+        "............",
+      ],
+    },
+  ],
 };
 
 function getActiveThemePatterns() {
@@ -2652,6 +2961,7 @@ function applyStaticTranslations() {
   });
   themeButtons.forEach((btn) => {
     if (btn.dataset.theme === "castle") btn.textContent = t("theme_castle_btn");
+    else if (btn.dataset.theme === "kawaii") btn.textContent = t("theme_kawaii_btn");
     else btn.textContent = t("theme_classic_btn");
   });
   renderThemeButtons();
@@ -2681,17 +2991,21 @@ function renderPsychedelicButton() {
 }
 
 function renderThemeButtons() {
-  const isCastle = activeThemeId === QUICK_THEME_CASTLE_ID;
+  const activeQuickTheme = activeThemeId === QUICK_THEME_CASTLE_ID
+    ? "castle"
+    : (activeThemeId === QUICK_THEME_KAWAII_ID ? "kawaii" : "classic");
   themeButtons.forEach((btn) => {
-    const isClassicBtn = btn.dataset.theme === "classic";
-    const isActive = isClassicBtn ? !isCastle : isCastle;
-    btn.classList.toggle("active", isActive);
+    btn.classList.toggle("active", btn.dataset.theme === activeQuickTheme);
   });
 }
 
 function setThemeFromSettingsChoice(choice) {
   if (choice === "castle") {
     setActiveTheme(QUICK_THEME_CASTLE_ID);
+    return;
+  }
+  if (choice === "kawaii") {
+    setActiveTheme(QUICK_THEME_KAWAII_ID);
     return;
   }
   setActiveTheme(QUICK_THEME_CLASSIC_ID);
@@ -2812,11 +3126,11 @@ function loadSettings() {
 }
 
 function buildThemeEconomyDefaults() {
-  const unlocked = { modern_english: true, castle_fantasy: true };
+  const unlocked = { modern_english: true, castle_fantasy: true, kawaii_pinky: true };
   const themeIds = Object.keys(THEMES);
   for (let i = 0; i < themeIds.length; i += 1) {
     const id = themeIds[i];
-    if (id !== "modern_english" && id !== "castle_fantasy") {
+    if (id !== "modern_english" && id !== "castle_fantasy" && id !== "kawaii_pinky") {
       unlocked[id] = SHOP_FREE_FOR_TESTS ? true : false;
     }
   }
@@ -2835,7 +3149,7 @@ function applyEconomyToThemes(economy) {
       THEMES[id].unlocked = true;
       continue;
     }
-    const isFreeDefault = id === QUICK_THEME_CLASSIC_ID || id === QUICK_THEME_CASTLE_ID;
+    const isFreeDefault = id === QUICK_THEME_CLASSIC_ID || id === QUICK_THEME_CASTLE_ID || id === QUICK_THEME_KAWAII_ID;
     THEMES[id].price = isFreeDefault ? 0 : THEME_PRICE;
     THEMES[id].unlocked = isFreeDefault ? true : Boolean(safe.unlocked && safe.unlocked[id]);
   }
@@ -2857,6 +3171,7 @@ function loadTheme() {
   let nextThemeId = saved && typeof saved === "object" ? saved.activeThemeId : saved;
   if (nextThemeId === "classic") nextThemeId = QUICK_THEME_CLASSIC_ID;
   if (nextThemeId === "castle") nextThemeId = QUICK_THEME_CASTLE_ID;
+  if (nextThemeId === "kawaii") nextThemeId = QUICK_THEME_KAWAII_ID;
   activeThemeId = THEMES[nextThemeId] && THEMES[nextThemeId].unlocked ? nextThemeId : "modern_english";
   saveThemeEconomy();
   applyThemeCSS();
@@ -4621,17 +4936,38 @@ function update(delta) {
 }
 
 function drawBackground() {
-  if (isCastleThemeActive()) {
-    const backgroundSprite = castleSprite("background");
+  if (isCustomPixelThemeActive()) {
+    const backgroundSprite = customThemeSprite("background");
     if (backgroundSprite) {
-      const tileW = backgroundSprite.width * 3;
-      const tileH = backgroundSprite.height * 3;
-      const drift = (performance.now() * 0.012) % tileW;
-      for (let y = 0; y < WORLD_HEIGHT + tileH; y += tileH) {
-        for (let x = -tileW; x < WORLD_WIDTH + tileW; x += tileW) {
-          ctx.drawImage(backgroundSprite, x - drift, y, tileW, tileH);
-        }
+      const srcW = backgroundSprite.width;
+      const srcH = backgroundSprite.height;
+      const srcRatio = srcW / srcH;
+      const dstRatio = WORLD_WIDTH / WORLD_HEIGHT;
+      let cropW = srcW;
+      let cropH = srcH;
+      let cropX = 0;
+      let cropY = 0;
+
+      // Static "cover" fit: fill full canvas without tiling, preserve ratio.
+      if (srcRatio > dstRatio) {
+        cropW = srcH * dstRatio;
+        cropX = (srcW - cropW) * 0.5;
+      } else if (srcRatio < dstRatio) {
+        cropH = srcW / dstRatio;
+        cropY = (srcH - cropH) * 0.5;
       }
+
+      ctx.drawImage(
+        backgroundSprite,
+        cropX,
+        cropY,
+        cropW,
+        cropH,
+        0,
+        0,
+        WORLD_WIDTH,
+        WORLD_HEIGHT,
+      );
       ctx.fillStyle = "rgba(8,15,28,0.16)";
       ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
       return;
@@ -4678,9 +5014,9 @@ function drawBricks() {
     const glow = brick.glow * 0.6;
     const brickRadius = theme.pixelMode ? 0 : 6;
 
-    if (isCastleThemeActive()) {
-      const spriteName = brick.isGolden ? "brickGold" : castleBrickSpriteName(brick.code);
-      const brickSprite = castleSprite(spriteName);
+    if (isCustomPixelThemeActive()) {
+      const spriteName = brick.isGolden ? "brickGold" : customBrickSpriteName(brick.code);
+      const brickSprite = customThemeSprite(spriteName);
       if (brickSprite) {
         ctx.drawImage(brickSprite, brick.x, brick.y, brick.w, brick.h);
         if (brick.glow > 0.05) {
@@ -4784,8 +5120,8 @@ function drawPaddle() {
   const pw = paddle.width;
   const ph = paddle.height;
 
-  if (isCastleThemeActive()) {
-    const paddleSprite = castleSprite("paddle");
+  if (isCustomPixelThemeActive()) {
+    const paddleSprite = customThemeSprite("paddle");
     if (paddleSprite) {
       ctx.drawImage(paddleSprite, px, py, pw, ph);
     } else {
@@ -4909,8 +5245,8 @@ function drawPaddle() {
     const leftX = px + Math.min(15, pw * 0.16) - cannonW * 0.5;
     const rightX = px + pw - Math.min(15, pw * 0.16) - cannonW * 0.5;
     const cannonY = py - cannonH + 1;
-    if (isCastleThemeActive()) {
-      const cannonSprite = castleSprite("cannon");
+    if (isCustomPixelThemeActive()) {
+      const cannonSprite = customThemeSprite("cannon");
       if (cannonSprite) {
         ctx.drawImage(cannonSprite, leftX, cannonY, cannonW, cannonH);
         ctx.drawImage(cannonSprite, rightX, cannonY, cannonW, cannonH);
@@ -4941,8 +5277,8 @@ function drawBalls() {
   const theme = getTheme();
   for (let i = 0; i < state.balls.length; i += 1) {
     const ball = state.balls[i];
-    if (isCastleThemeActive()) {
-      const ballSprite = castleSprite("ball");
+    if (isCustomPixelThemeActive()) {
+      const ballSprite = customThemeSprite("ball");
       if (ballSprite) {
         const d = ball.radius * 2;
         ctx.drawImage(ballSprite, ball.x - ball.radius, ball.y - ball.radius, d, d);
@@ -5003,8 +5339,8 @@ function drawFireShots() {
   const theme = getTheme();
   for (let i = 0; i < state.fireShots.length; i += 1) {
     const shot = state.fireShots[i];
-    if (isCastleThemeActive()) {
-      const shotSprite = castleSprite("fireShot");
+    if (isCustomPixelThemeActive()) {
+      const shotSprite = customThemeSprite("fireShot");
       if (shotSprite) {
         const w = shot.r * 2.4;
         const h = shot.r * 4.8;
@@ -5034,8 +5370,8 @@ function drawFireShots() {
 function drawBonuses() {
   for (let i = 0; i < state.fallingBonuses.length; i += 1) {
     const bonus = state.fallingBonuses[i];
-    if (isCastleThemeActive()) {
-      const bonusSprite = castleSprite(castleBonusSpriteName(bonus.typeId));
+    if (isCustomPixelThemeActive()) {
+      const bonusSprite = customThemeSprite(customBonusSpriteName(bonus.typeId));
       if (bonusSprite) {
         ctx.drawImage(
           bonusSprite,
